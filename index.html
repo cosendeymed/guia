@@ -599,53 +599,50 @@ mark { background: #fef9c3; color: #713f12; border-radius: 2px; padding: 0 1px; 
 <!-- ═══ MODAL: GITHUB CONFIG ═══ -->
 <div class="modal" id="modalGithub">
   <div class="modal-overlay" onclick="closeModal('modalGithub')"></div>
-  <div class="modal-box" style="max-width:500px">
+  <div class="modal-box" style="max-width:480px">
     <div class="modal-head">
-      <h3>🐙 Configurar Sincronização com GitHub</h3>
+      <h3>🐙 GitHub — Configurar Token</h3>
       <button class="modal-close" onclick="closeModal('modalGithub')">×</button>
     </div>
     <div class="modal-body">
 
-      <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#1e40af;line-height:1.8">
-        <strong>⚡ Configure uma vez — sincroniza sempre.</strong><br>
-        Depois de salvar, toda alteração no app mostrará um banner e você clica <b>Sincronizar agora</b>.<br>
-        Funciona de qualquer internet, em qualquer dispositivo.
+      <div id="gh_token_status" style="border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+        <span id="gh_status_icon">🔄</span>
+        <span id="gh_status_text">Verificando token...</span>
       </div>
 
-      <label>🔑 Token de Acesso Pessoal (GitHub PAT)</label>
-      <input id="gh_token" class="field" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-      <div style="font-size:11px;color:var(--gray500);margin-top:5px;line-height:1.6">
-        Gere em: <b>github.com → Settings → Developer settings → Personal access tokens → Fine-grained</b><br>
-        Permissão necessária: <b>Contents: Read and write</b> no repositório do MedGuia
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
-        <div>
-          <label>👤 Usuário GitHub</label>
-          <input id="gh_user" class="field" placeholder="seu-usuario">
-        </div>
-        <div>
-          <label>📁 Repositório</label>
-          <input id="gh_repo" class="field" placeholder="medguia-pro">
-        </div>
-      </div>
-
-      <label style="margin-top:10px">📄 Caminho do arquivo</label>
-      <input id="gh_path" class="field" placeholder="index.html" value="index.html">
-      <div style="font-size:11px;color:var(--gray500);margin-top:4px">Normalmente <b>index.html</b> na raiz do repositório</div>
-
-      <div id="gh_status" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:12px;line-height:1.5"></div>
-
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray200)">
-        <div style="font-size:11px;color:var(--gray600);margin-bottom:8px">Sem GitHub? Baixe o HTML e envie manualmente:</div>
-        <button onclick="exportHtml()" style="background:var(--gray100);border:1.5px solid var(--gray300);color:var(--gray700);padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">
-          📥 Baixar HTML atualizado
+      <label style="font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--gray600)">
+        🔑 Personal Access Token (GitHub)
+      </label>
+      <div style="position:relative;margin-top:6px">
+        <input id="gh_token" class="field" type="password" 
+          placeholder="github_pat_... ou ghp_..."
+          autocomplete="off"
+          style="padding-right:80px;font-family:var(--mono);font-size:12px">
+        <button onclick="toggleTokenVis()" 
+          style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--gray500);cursor:pointer;font-size:12px;padding:2px 6px">
+          👁 ver
         </button>
       </div>
+
+      <div style="margin-top:10px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:11px 14px;font-size:12px;color:#92400e;line-height:1.7">
+        <strong>⚠️ Gere um token SEM EXPIRAÇÃO:</strong><br>
+        1. Acesse <b>github.com</b> → foto do perfil → <b>Settings</b><br>
+        2. <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Tokens (classic)</b><br>
+        3. <b>Generate new token (classic)</b><br>
+        4. Em <b>Expiration</b> selecione <b>"No expiration"</b> ← IMPORTANTE<br>
+        5. Marque o escopo <b>"repo"</b> → clique <b>Generate token</b><br>
+        6. Copie e cole o token aqui
+      </div>
+
+      <div id="gh_status" style="display:none;margin-top:10px;padding:10px;border-radius:6px;font-size:12px;line-height:1.5"></div>
     </div>
-    <div class="modal-foot">
+    <div class="modal-foot" style="gap:8px">
       <button class="btn-cancel" onclick="closeModal('modalGithub')">Cancelar</button>
-      <button class="btn-ok" onclick="pushToGithub()">💾 Salvar e Sincronizar agora</button>
+      <button onclick="testGhToken()" style="background:var(--gray100);border:1.5px solid var(--gray300);color:var(--gray700);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:600">
+        🔍 Testar
+      </button>
+      <button class="btn-ok" onclick="saveGhToken()">💾 Salvar Token</button>
     </div>
   </div>
 </div>
@@ -2334,16 +2331,32 @@ function buildExportHtml() {
 }
 
 // ── Credenciais GitHub — fixas no código (não dependem de localStorage) ──
+// ══ CONFIGURAÇÃO GITHUB — EDITE AQUI QUANDO TROCAR O TOKEN ══
+// Para gerar token sem expiração: github.com → Settings → Developer settings
+// → Personal access tokens → Tokens (classic) → Generate new token (classic)
+// → Selecione "repo" → Expiration: "No expiration" → Generate token
 const GH_CONFIG = {
-  token: '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',
+  token: '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',
   user:  'cosendeythais-stack',
   repo:  'PRATICAMEDICA',
   path:  'index.html'
 };
-// Permite override via localStorage (se o médico quiser configurar outro repo)
+
+// ghGet: localStorage tem prioridade (troca temporária via modal),
+// mas GH_CONFIG é o fallback permanente gravado no código
 function ghGet(key) {
   return localStorage.getItem('gh_' + key) || GH_CONFIG[key] || '';
 }
+
+// Garante que o token do código sempre substitui localStorage vazio/expirado
+(function ensureGhCreds() {
+  ['token','user','repo','path'].forEach(function(k) {
+    // Só sobrescreve se o localStorage estiver vazio — preserva overrides manuais
+    if (!localStorage.getItem('gh_' + k) && GH_CONFIG[k]) {
+      localStorage.setItem('gh_' + k, GH_CONFIG[k]);
+    }
+  });
+})();
 
 // ── Hook no save() para detectar alterações ──
 const _origSave = save;
@@ -2356,14 +2369,87 @@ window.save = function() {
 
 // ── Modal de configuração (só para configurar credenciais) ──
 function openGithubModal() {
-  document.getElementById('gh_token').value = ghGet('token');
-  document.getElementById('gh_user').value  = ghGet('user');
-  document.getElementById('gh_repo').value  = ghGet('repo');
-  document.getElementById('gh_path').value  = ghGet('path') || 'index.html';
+  const tok = document.getElementById('gh_token');
+  if (tok) tok.value = ghGet('token');
   document.getElementById('gh_status').style.display = 'none';
+  setGhStatusBadge('checking', 'Verificando token...');
   openModal('modalGithub');
+  // Auto-test token on open
+  setTimeout(() => testGhToken(true), 400);
 }
 window.openGithubModal = openGithubModal;
+
+function toggleTokenVis() {
+  const inp = document.getElementById('gh_token');
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+window.toggleTokenVis = toggleTokenVis;
+
+function setGhStatusBadge(state, msg) {
+  const box  = document.getElementById('gh_token_status');
+  const icon = document.getElementById('gh_status_icon');
+  const text = document.getElementById('gh_status_text');
+  if (!box || !icon || !text) return;
+  const styles = {
+    checking: { bg:'#f0f9ff', border:'#bae6fd', color:'#0369a1', icon:'🔄' },
+    ok:       { bg:'#f0fdf4', border:'#bbf7d0', color:'#166534', icon:'✅' },
+    error:    { bg:'#fef2f2', border:'#fecaca', color:'#dc2626', icon:'❌' },
+  };
+  const s = styles[state] || styles.checking;
+  box.style.background   = s.bg;
+  box.style.border       = `1.5px solid ${s.border}`;
+  box.style.color        = s.color;
+  icon.textContent       = s.icon;
+  text.textContent       = msg;
+}
+
+async function testGhToken(silent) {
+  const token = document.getElementById('gh_token')?.value.trim() || ghGet('token');
+  const user  = ghGet('user');
+  const repo  = ghGet('repo');
+  if (!token) { setGhStatusBadge('error', 'Nenhum token configurado'); return; }
+  setGhStatusBadge('checking', 'Testando conexão com GitHub...');
+  try {
+    const resp = await fetch(
+      `https://api.github.com/repos/${user}/${repo}`,
+      { headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' } }
+    );
+    if (resp.ok) {
+      setGhStatusBadge('ok', `✅ Token válido — repositório "${repo}" acessível`);
+      if (!silent) toast('✅ Token funcionando!');
+    } else if (resp.status === 401) {
+      setGhStatusBadge('error', '❌ Token inválido ou expirado — gere um novo token');
+    } else if (resp.status === 404) {
+      setGhStatusBadge('error', `❌ Repositório "${repo}" não encontrado — verifique o nome`);
+    } else {
+      setGhStatusBadge('error', `❌ Erro ${resp.status} — verifique as configurações`);
+    }
+  } catch(e) {
+    setGhStatusBadge('error', '❌ Sem conexão com internet');
+  }
+}
+window.testGhToken = testGhToken;
+
+async function saveGhToken() {
+  const token = document.getElementById('gh_token')?.value.trim();
+  if (!token) { toast('⚠️ Cole o token primeiro'); return; }
+  // Save to localStorage (overrides GH_CONFIG)
+  localStorage.setItem('gh_token', token);
+  setGhStatusBadge('checking', 'Salvando e testando...');
+  await testGhToken(true);
+  const statusText = document.getElementById('gh_status_text')?.textContent || '';
+  if (statusText.includes('✅') || statusText.includes('válido')) {
+    toast('✅ Token salvo! Sincronizando...');
+    setTimeout(() => {
+      closeModal('modalGithub');
+      bannerSync();
+    }, 800);
+  } else {
+    toast('⚠️ Token salvo, mas pode estar com problema');
+  }
+}
+window.saveGhToken = saveGhToken;
 
 // ── Export HTML local ──
 function exportHtml() {
@@ -2379,26 +2465,18 @@ window.exportHtml = exportHtml;
 
 // ── Push via modal (salva config e envia) ──
 async function pushToGithub() {
-  const token = document.getElementById('gh_token').value.trim();
-  const user  = document.getElementById('gh_user').value.trim();
-  const repo  = document.getElementById('gh_repo').value.trim();
-  const path  = document.getElementById('gh_path').value.trim() || 'index.html';
+  const token = document.getElementById('gh_token')?.value.trim() || ghGet('token');
+  const user  = ghGet('user');
+  const repo  = ghGet('repo');
+  const path  = ghGet('path') || 'index.html';
 
   if (!token || !user || !repo) {
-    showGhStatus('⚠️ Preencha token, usuário e repositório.', 'error'); return;
+    showGhStatus('⚠️ Token, usuário ou repositório não configurados.', 'error'); return;
   }
 
-  // Salva override no localStorage somente se diferente do padrão
-  if (token !== GH_CONFIG.token) localStorage.setItem('gh_token', token); else localStorage.removeItem('gh_token');
-  if (user  !== GH_CONFIG.user)  localStorage.setItem('gh_user',  user);  else localStorage.removeItem('gh_user');
-  if (repo  !== GH_CONFIG.repo)  localStorage.setItem('gh_repo',  repo);  else localStorage.removeItem('gh_repo');
-  if (path  !== GH_CONFIG.path)  localStorage.setItem('gh_path',  path);  else localStorage.removeItem('gh_path');
-
+  localStorage.setItem('gh_token', token);
   showGhStatus('🔄 Enviando...', 'info');
-
   await pushToGithubDirect(token, user, repo, path);
-
-  // Refletir resultado no modal também
   if (!_hasUnsyncedChanges) {
     showGhStatus('✅ Enviado com sucesso!', 'success');
     setTimeout(() => closeModal('modalGithub'), 2000);
