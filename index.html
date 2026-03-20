@@ -8461,5 +8461,619 @@ function renderCaderno(container) {
   });
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ORGANIZAR COM IA — v3
+     • Sidebar item abaixo do Caderno
+     • Modal principal (aba + secao existente ou nova)
+     • Icone apenas em abas de prescricao
+     • Mini-modal confirmacao/edicao inline por item
+══════════════════════════════════════════════════════════ -->
+<style>
+/* sidebar item */
+.si-ai{display:flex;align-items:center;gap:9px;padding:8px 10px;margin:4px 6px 2px;border-radius:7px;cursor:pointer;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(8,145,178,.12));border:1px solid rgba(96,165,250,.35);color:#93c5fd;font-size:13px;font-weight:600;transition:background .13s,border-color .13s;white-space:nowrap;user-select:none;}
+.si-ai:hover{background:linear-gradient(135deg,rgba(37,99,235,.28),rgba(8,145,178,.2));border-color:rgba(96,165,250,.6);}
+#sidebar.mini .si-ai .sl{display:none;}
+#sidebar.mini .si-ai{justify-content:center;padding:10px 0;margin:1px 6px;}
+
+/* modal principal */
+#mgAIModal{position:fixed;inset:0;z-index:5000;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.52);backdrop-filter:blur(3px);padding:10px;overflow-y:auto;}
+#mgAIModal.show{display:flex;}
+#mgAIBox{position:relative;background:#fff;border-radius:14px;width:100%;max-width:800px;box-shadow:0 24px 80px rgba(0,0,0,.22);border:1.5px solid #e2e8f0;display:flex;flex-direction:column;margin:auto;max-height:calc(100vh - 20px);}
+.mgai-head{display:flex;align-items:center;gap:10px;padding:14px 18px 12px;background:linear-gradient(135deg,#1d4ed8,#0891b2);border-radius:13px 13px 0 0;flex-shrink:0;}
+.mgai-head h3{font-size:15px;font-weight:800;color:#fff;margin:0;flex:1;}
+.mgai-head p{font-size:11px;color:rgba(255,255,255,.72);margin:2px 0 0;}
+.mgai-head-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.13s;flex-shrink:0;}
+.mgai-head-close:hover{background:rgba(255,255,255,.28);}
+.mgai-body{padding:13px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;}
+.mgai-lbl{font-size:9px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--gray500);font-family:var(--mono);margin-bottom:3px;}
+/* tipo */
+.mgai-type-row{display:flex;gap:6px;flex-wrap:wrap;}
+.mgai-type-btn{flex:1;min-width:85px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 7px;cursor:pointer;text-align:center;font-family:var(--sans);transition:.13s;}
+.mgai-type-btn .tbi{font-size:16px;display:block;margin-bottom:2px;}
+.mgai-type-btn .tbl{font-size:10px;font-weight:700;color:var(--gray700);}
+.mgai-type-btn.sel{background:#eff6ff;border-color:#2563eb;}
+.mgai-type-btn.sel .tbl{color:#2563eb;}
+/* inputs */
+#mgAIInput{width:100%;min-height:140px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:9px;padding:11px 13px;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--gray900);outline:none;resize:vertical;transition:border-color .14s;}
+#mgAIInput:focus{border-color:#2563eb;background:#fff;}
+#mgAIInput::placeholder{color:#94a3b8;}
+#mgAIPesoInput{background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;padding:7px 11px;font-family:var(--mono);font-size:13px;outline:none;width:160px;transition:.13s;}
+#mgAIPesoInput:focus{border-color:#2563eb;}
+/* loading */
+#mgAILoading{display:none;flex-direction:column;align-items:center;gap:10px;padding:22px;background:#eff6ff;border-radius:10px;}
+#mgAILoading.show{display:flex;}
+.mgai-spinner,.mgaic-spinner{width:32px;height:32px;border:3px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:mgai-spin .8s linear infinite;}
+.mgaic-spinner{border-color:#ddd6fe;border-top-color:#7c3aed;}
+@keyframes mgai-spin{to{transform:rotate(360deg)}}
+#mgAILoading p{font-size:12px;color:#1d4ed8;font-weight:600;text-align:center;margin:0;}
+/* resultado */
+#mgAIResult{display:none;flex-direction:column;gap:8px;}
+#mgAIResult.show{display:flex;}
+.mgai-res-head{font-size:11px;font-weight:800;color:#15803d;display:flex;align-items:center;gap:6px;}
+#mgAIResultPrescText{font-family:var(--mono);font-size:12px;line-height:1.85;color:#1e293b;white-space:pre-wrap;word-break:break-word;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px 14px;max-height:240px;overflow-y:auto;scrollbar-width:thin;}
+#mgAIResultNotesBlock{display:none;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:10px 13px;}
+#mgAIResultNotesBlock .nc-lbl{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#92400e;font-family:var(--mono);margin-bottom:5px;}
+#mgAIResultNotesText{font-family:var(--mono);font-size:11.5px;line-height:1.8;color:#78350f;white-space:pre-wrap;word-break:break-word;}
+/* destino */
+.mgai-dest-outer{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:11px 12px;display:flex;flex-direction:column;gap:8px;}
+.mgai-dest-tabs-row,.mgai-dest-secs-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.mgai-dest-tab{display:flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:5px 10px;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:700;color:var(--gray700);transition:.13s;white-space:nowrap;}
+.mgai-dest-tab:hover{border-color:#2563eb;color:#1d4ed8;background:#eff6ff;}
+.mgai-dest-tab.active{background:#2563eb;border-color:#1d4ed8;color:#fff;}
+.mgai-dest-new-btn{background:none;border:1.5px dashed var(--gray400);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:700;color:var(--gray500);transition:.13s;white-space:nowrap;}
+.mgai-dest-new-btn:hover{border-color:#2563eb;color:#2563eb;}
+.mgai-dest-sec{background:#fff;border:1.5px solid #e2e8f0;border-radius:6px;padding:4px 9px;cursor:pointer;font-family:var(--sans);font-size:10px;font-weight:700;color:var(--gray600);transition:.13s;white-space:nowrap;}
+.mgai-dest-sec:hover{border-color:#16a34a;color:#15803d;background:#f0fdf4;}
+.mgai-dest-sec.active{background:#16a34a;border-color:#15803d;color:#fff;}
+/* form inline criar */
+.mgai-inline-form{display:none;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:9px 11px;flex-direction:column;gap:7px;}
+.mgai-inline-form.show{display:flex;}
+.mgai-inline-form input{background:#fff;border:1.5px solid #fcd34d;border-radius:6px;padding:6px 10px;font-family:var(--sans);font-size:12px;outline:none;width:100%;color:var(--gray900);}
+.mgai-inline-form input:focus{border-color:#f59e0b;}
+.mgai-if-btns{display:flex;gap:6px;}
+.mgai-if-ok{background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;font-family:var(--sans);cursor:pointer;}
+.mgai-if-cancel{background:var(--gray100);color:var(--gray600);border:1.5px solid var(--gray300);border-radius:6px;padding:5px 11px;font-size:12px;font-family:var(--sans);cursor:pointer;}
+/* titulo */
+#mgAITitleInput{width:100%;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-family:var(--sans);font-size:13px;outline:none;transition:.13s;color:var(--gray900);}
+#mgAITitleInput:focus{border-color:#2563eb;background:#fff;}
+/* footer principal */
+.mgai-foot{display:flex;align-items:center;gap:8px;padding:10px 16px 12px;border-top:1.5px solid #f1f5f9;flex-wrap:wrap;flex-shrink:0;}
+.mgai-foot-r{margin-left:auto;display:flex;gap:8px;}
+.mgai-btn-cancel{background:#f1f5f9;color:#64748b;border:1.5px solid #e2e8f0;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--sans);}
+.mgai-btn-go{background:linear-gradient(135deg,#1d4ed8,#0891b2);color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:800;font-family:var(--sans);transition:opacity .13s;display:flex;align-items:center;gap:6px;}
+.mgai-btn-go:hover{opacity:.88;}
+.mgai-btn-go:disabled{opacity:.45;cursor:not-allowed;}
+#mgAISendBtn{background:#16a34a;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:800;font-family:var(--sans);display:none;align-items:center;gap:6px;}
+#mgAISendBtn:hover{opacity:.9;}
+#mgAISendBtn.show{display:flex;}
+/* icone ia nas rows */
+.row-ai-btn{background:none;border:1.5px solid transparent;color:#3b82f6;padding:3px 5px;border-radius:5px;cursor:pointer;font-size:11px;transition:.12s;font-family:var(--sans);line-height:1;flex-shrink:0;}
+.row-ai-btn:hover{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+/* mini-modal confirmacao */
+#mgAIConfirmModal{position:fixed;inset:0;z-index:6000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);padding:12px;}
+#mgAIConfirmModal.show{display:flex;}
+#mgAIConfirmBox{background:#fff;border-radius:14px;width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 70px rgba(0,0,0,.25);border:1.5px solid #e2e8f0;}
+.mgaic-head{display:flex;align-items:center;gap:8px;padding:13px 17px 11px;background:linear-gradient(135deg,#7c3aed,#2563eb);border-radius:13px 13px 0 0;flex-shrink:0;}
+.mgaic-head h3{font-size:14px;font-weight:800;color:#fff;margin:0;flex:1;}
+.mgaic-head-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:19px;width:28px;height:28px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mgaic-head-close:hover{background:rgba(255,255,255,.28);}
+.mgaic-body{padding:13px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;}
+.mgaic-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray500);font-family:var(--mono);margin-bottom:3px;}
+.mgaic-original{background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:10px 13px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:#7f1d1d;white-space:pre-wrap;word-break:break-word;max-height:140px;overflow-y:auto;scrollbar-width:thin;}
+#mgAICLoading{display:none;flex-direction:column;align-items:center;gap:8px;padding:20px;background:#f5f3ff;border-radius:9px;}
+#mgAICLoading.show{display:flex;}
+#mgAICLoading p{font-size:12px;color:#7c3aed;font-weight:600;margin:0;text-align:center;}
+.mgaic-result{display:none;flex-direction:column;gap:8px;}
+.mgaic-result.show{display:flex;}
+#mgAICResultPresc{width:100%;min-height:120px;background:#f0fdf4;border:2px solid #bbf7d0;border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:12px;line-height:1.85;color:#1e293b;outline:none;resize:vertical;transition:border-color .14s;}
+#mgAICResultPresc:focus{border-color:#16a34a;background:#fff;}
+#mgAICResultNotes{width:100%;min-height:70px;background:#fffbeb;border:2px solid #fde68a;border-radius:8px;padding:9px 12px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:#78350f;outline:none;resize:vertical;}
+#mgAICResultNotes:focus{border-color:#f59e0b;}
+.mgaic-foot{display:flex;align-items:center;gap:7px;padding:10px 16px 12px;border-top:1.5px solid #f1f5f9;flex-shrink:0;flex-wrap:wrap;}
+.mgaic-foot-r{margin-left:auto;display:flex;gap:6px;}
+.mgaic-btn-cancel{background:#f1f5f9;color:#64748b;border:1.5px solid #e2e8f0;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--sans);}
+#mgAICConfirmBtn{background:#16a34a;color:#fff;border:none;padding:8px 16px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:800;font-family:var(--sans);display:none;align-items:center;gap:5px;}
+#mgAICConfirmBtn.show{display:flex;}
+#mgAICConfirmBtn:hover{opacity:.88;}
+@media(max-width:520px){.mgai-type-btn{min-width:75px;}.mgai-dest-tab{font-size:10px;padding:4px 8px;}}
+</style>
+
+<!-- MODAL PRINCIPAL -->
+<div id="mgAIModal" onclick="if(event.target===this)mgAIClose()">
+  <div id="mgAIBox">
+    <div class="mgai-head">
+      <span style="font-size:22px">🤖</span>
+      <div style="flex:1"><h3>Organizar com IA</h3><p>Cole anotacoes ou receitas — a IA estrutura no padrao do sistema</p></div>
+      <button class="mgai-head-close" onclick="mgAIClose()">x</button>
+    </div>
+    <div class="mgai-body">
+      <!-- Tipo -->
+      <div>
+        <div class="mgai-lbl">Tipo de prescricao</div>
+        <div class="mgai-type-row">
+          <div class="mgai-type-btn sel" onclick="mgAISetType('adulto',this)"><span class="tbi">🧑</span><span class="tbl">Adulto</span></div>
+          <div class="mgai-type-btn" onclick="mgAISetType('pediatria',this)"><span class="tbi">👶</span><span class="tbl">Pediatria</span></div>
+          <div class="mgai-type-btn" onclick="mgAISetType('obstetricia',this)"><span class="tbi">🤰</span><span class="tbl">Obstetricia</span></div>
+          <div class="mgai-type-btn" onclick="mgAISetType('prescrever',this)"><span class="tbi">⚡</span><span class="tbl">Prescrever Agora</span></div>
+        </div>
+      </div>
+      <!-- Peso -->
+      <div id="mgAIPesoRow" style="display:none">
+        <div class="mgai-lbl">Peso do paciente (kg)</div>
+        <input id="mgAIPesoInput" type="number" step="0.1" min="0.5" max="150" placeholder="Ex: 12.5">
+      </div>
+      <!-- Texto -->
+      <div>
+        <div class="mgai-lbl">Cole aqui a receita ou anotacao (pode ser desorganizado)</div>
+        <textarea id="mgAIInput" placeholder="Exemplos:
+- dipirona 1cp 6/6h, amoxicilina 500mg 8/8h 7 dias, prednisona 40mg manha 5 dias
+- Dipirona 1g (1 AMP=2ml) 20ml EV lento 5min, Ceftriaxona 1g SF 100ml EV 30min
+- paracetamol 15mg/kg + amox suspensao, otite, 10 dias"></textarea>
+      </div>
+      <!-- Loading -->
+      <div id="mgAILoading"><div class="mgai-spinner"></div><p>A IA esta organizando...</p></div>
+      <!-- Resultado -->
+      <div id="mgAIResult">
+        <div class="mgai-res-head">Prescricao organizada — revise antes de salvar</div>
+        <div class="mgai-lbl">PRESCRICAO</div>
+        <div id="mgAIResultPrescText"></div>
+        <div id="mgAIResultNotesBlock"><div class="nc-lbl">Notas Clinicas</div><div id="mgAIResultNotesText"></div></div>
+      </div>
+      <!-- Destino -->
+      <div>
+        <div class="mgai-lbl">Destino — aba e secao</div>
+        <div class="mgai-dest-outer">
+          <div>
+            <div style="font-size:9px;color:var(--gray400);font-family:var(--mono);margin-bottom:5px;letter-spacing:1px">ABA</div>
+            <div class="mgai-dest-tabs-row" id="mgAIDestTabs"></div>
+          </div>
+          <div class="mgai-inline-form" id="mgAINewTabForm">
+            <div style="font-size:10px;font-weight:700;color:#92400e">Nova aba</div>
+            <input id="mgAINewTabName" placeholder="Nome da nova aba..." maxlength="50">
+            <div class="mgai-if-btns">
+              <button class="mgai-if-ok" onclick="mgAICreateTab()">Criar</button>
+              <button class="mgai-if-cancel" onclick="mgAIHideForm('tab')">Cancelar</button>
+            </div>
+          </div>
+          <div id="mgAIDestSecsWrap" style="display:none">
+            <div style="font-size:9px;color:var(--gray400);font-family:var(--mono);margin-bottom:5px;letter-spacing:1px">SECAO</div>
+            <div class="mgai-dest-secs-row" id="mgAIDestSecs"></div>
+          </div>
+          <div class="mgai-inline-form" id="mgAINewSecForm">
+            <div style="font-size:10px;font-weight:700;color:#92400e">Nova secao</div>
+            <input id="mgAINewSecName" placeholder="Nome da nova secao..." maxlength="60">
+            <div class="mgai-if-btns">
+              <button class="mgai-if-ok" onclick="mgAICreateSec()">Criar</button>
+              <button class="mgai-if-cancel" onclick="mgAIHideForm('sec')">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Titulo -->
+      <div>
+        <div class="mgai-lbl">Titulo do item</div>
+        <input id="mgAITitleInput" placeholder="Ex: Amigdalite Bacteriana Adulto">
+      </div>
+    </div>
+    <div class="mgai-foot">
+      <button class="mgai-btn-cancel" onclick="mgAIClose()">Cancelar</button>
+      <div class="mgai-foot-r">
+        <button class="mgai-btn-go" id="mgAIGoBtn" onclick="mgAIRun()">✨ Organizar com IA</button>
+        <button id="mgAISendBtn" onclick="mgAISend()">📥 Salvar na secao</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MINI-MODAL CONFIRMACAO -->
+<div id="mgAIConfirmModal" onclick="if(event.target===this)mgAICClose()">
+  <div id="mgAIConfirmBox">
+    <div class="mgaic-head">
+      <span style="font-size:18px">🤖</span>
+      <h3 id="mgAICTitle">Corrigir prescricao com IA</h3>
+      <button class="mgaic-head-close" onclick="mgAICClose()">x</button>
+    </div>
+    <div class="mgaic-body">
+      <div>
+        <div class="mgaic-lbl">Original</div>
+        <div class="mgaic-original" id="mgAICOriginal"></div>
+      </div>
+      <div id="mgAICLoading"><div class="mgaic-spinner"></div><p>A IA esta reformatando...</p></div>
+      <div class="mgaic-result" id="mgAICResultSection">
+        <div>
+          <div class="mgaic-lbl">Prescricao corrigida — edite se necessario antes de confirmar</div>
+          <textarea id="mgAICResultPresc"></textarea>
+        </div>
+        <div id="mgAICNotesWrap" style="display:none">
+          <div class="mgaic-lbl">Notas clinicas</div>
+          <textarea id="mgAICResultNotes"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mgaic-foot">
+      <button class="mgaic-btn-cancel" onclick="mgAICClose()">Cancelar</button>
+      <div class="mgaic-foot-r">
+        <button id="mgAICConfirmBtn" onclick="mgAICConfirm()">✅ Confirmar e salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// ORGANIZAR COM IA v3
+// ═══════════════════════════════════════════════════════════
+var MGAI_PRESC_TABS = ['receitas','pediatria','obstetricia','diluicoes'];
+var _mgAIType    = 'adulto';
+var _mgAIResult  = null;
+var _mgAIDestKey = null;
+var _mgAIDestSec = null;
+var _mgAIC       = {k:null,si:null,ii:null};
+
+// ── Sidebar item ──
+(function(){
+  function inject(){
+    var nav=document.getElementById('sidebarNav');
+    if(!nav){setTimeout(inject,400);return;}
+    if(document.getElementById('mgAISidebarItem'))return;
+    var el=document.createElement('div');
+    el.id='mgAISidebarItem';el.className='si-ai';
+    el.innerHTML='<span class="si-ico" style="font-size:15px;width:20px;text-align:center">🤖</span><span class="sl">Organizar com IA</span>';
+    el.onclick=function(){mgAIOpen();};
+    var items=nav.querySelectorAll('.si');
+    var after=null;
+    items.forEach(function(e){if(e.dataset.k==='caderno')after=e;});
+    if(after&&after.nextSibling)nav.insertBefore(el,after.nextSibling);
+    else nav.appendChild(el);
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(inject,700);});
+  var _ob=window.buildNav;
+  if(_ob)window.buildNav=function(){_ob();setTimeout(inject,120);};
+})();
+
+// ── Patch buildRowHTML: icone apenas em abas de prescricao ──
+(function(){
+  function patch(){
+    var _orig=window.buildRowHTML;
+    if(!_orig){setTimeout(patch,500);return;}
+    window.buildRowHTML=function(k,si,ii,item){
+      var html=_orig(k,si,ii,item);
+      if(MGAI_PRESC_TABS.indexOf(k)!==-1){
+        var btn='<button class="row-ai-btn" onclick="event.stopPropagation();mgAICOpen(\''+k+'\','+si+','+ii+')" title="Corrigir com IA">🤖</button>';
+        html=html.replace('<button class="btn-edit-item"',btn+'<button class="btn-edit-item"');
+      }
+      return html;
+    };
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,200);});
+})();
+
+// ═══ MODAL PRINCIPAL ═══
+function mgAIOpen(){
+  _mgAIResult=null;_mgAIDestKey=null;_mgAIDestSec=null;
+  document.getElementById('mgAIModal').classList.add('show');
+  document.getElementById('mgAIResult').classList.remove('show');
+  document.getElementById('mgAILoading').classList.remove('show');
+  document.getElementById('mgAIResultNotesBlock').style.display='none';
+  document.getElementById('mgAISendBtn').classList.remove('show');
+  document.getElementById('mgAIGoBtn').disabled=false;
+  document.getElementById('mgAIGoBtn').textContent='✨ Organizar com IA';
+  document.getElementById('mgAIInput').value='';
+  document.getElementById('mgAITitleInput').value='';
+  document.getElementById('mgAINewTabForm').classList.remove('show');
+  document.getElementById('mgAINewSecForm').classList.remove('show');
+  mgAIBuildDest();
+  setTimeout(function(){document.getElementById('mgAIInput').focus();},120);
+}
+window.mgAIOpen=mgAIOpen;
+
+function mgAIClose(){document.getElementById('mgAIModal').classList.remove('show');}
+window.mgAIClose=mgAIClose;
+
+function mgAISetType(t,btn){
+  _mgAIType=t;
+  document.querySelectorAll('.mgai-type-btn').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel');
+  document.getElementById('mgAIPesoRow').style.display=(t==='pediatria')?'block':'none';
+}
+window.mgAISetType=mgAISetType;
+
+// ── Destino ──
+function mgAIBuildDest(){
+  var tabsEl=document.getElementById('mgAIDestTabs');
+  var secsEl=document.getElementById('mgAIDestSecs');
+  var secsWr=document.getElementById('mgAIDestSecsWrap');
+  tabsEl.innerHTML='';secsEl.innerHTML='';secsWr.style.display='none';
+  _mgAIDestKey=null;_mgAIDestSec=null;
+  var skip=['calculos','config','caderno','info'];
+  var keys=Object.keys(window.D||{}).filter(function(k){return skip.indexOf(k)===-1;});
+  keys.forEach(function(k){
+    var ico=(window.IC&&window.IC[k])||'📋';
+    var lbl=(window.D[k]&&window.D[k].label)||k;
+    var btn=document.createElement('button');
+    btn.className='mgai-dest-tab';btn.dataset.key=k;
+    btn.innerHTML=ico+' '+lbl;
+    btn.onclick=function(){mgAISelectTab(k,btn);};
+    tabsEl.appendChild(btn);
+  });
+  var nb=document.createElement('button');
+  nb.className='mgai-dest-new-btn';nb.textContent='+ Nova aba';
+  nb.onclick=function(){mgAIShowForm('tab');};
+  tabsEl.appendChild(nb);
+}
+window.mgAIBuildDest=mgAIBuildDest;
+
+function mgAISelectTab(k,btn){
+  _mgAIDestKey=k;_mgAIDestSec=null;
+  document.querySelectorAll('.mgai-dest-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('mgAINewSecForm').classList.remove('show');
+  var secsEl=document.getElementById('mgAIDestSecs');
+  var secsWr=document.getElementById('mgAIDestSecsWrap');
+  secsEl.innerHTML='';
+  var secs=(window.D[k]&&window.D[k].sections)||[];
+  secs.forEach(function(sec,si){
+    var b=document.createElement('button');
+    b.className='mgai-dest-sec';b.dataset.si=si;
+    b.textContent=sec.title||('Secao '+(si+1));
+    b.onclick=function(){mgAISelectSec(si,b);};
+    secsEl.appendChild(b);
+  });
+  var ns=document.createElement('button');
+  ns.className='mgai-dest-new-btn';ns.style.fontSize='10px';ns.textContent='+ Nova secao';
+  ns.onclick=function(){mgAIShowForm('sec');};
+  secsEl.appendChild(ns);
+  secsWr.style.display='block';
+  var first=secsEl.querySelector('.mgai-dest-sec');
+  if(first)mgAISelectSec(0,first);
+  mgAICheckSend();
+}
+window.mgAISelectTab=mgAISelectTab;
+
+function mgAISelectSec(si,btn){
+  _mgAIDestSec=si;
+  document.querySelectorAll('.mgai-dest-sec').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  mgAICheckSend();
+}
+window.mgAISelectSec=mgAISelectSec;
+
+function mgAIShowForm(w){
+  var tf=document.getElementById('mgAINewTabForm');
+  var sf=document.getElementById('mgAINewSecForm');
+  if(w==='tab'){tf.classList.add('show');sf.classList.remove('show');setTimeout(function(){document.getElementById('mgAINewTabName').focus();},60);}
+  else{sf.classList.add('show');tf.classList.remove('show');setTimeout(function(){document.getElementById('mgAINewSecName').focus();},60);}
+}
+window.mgAIShowForm=mgAIShowForm;
+
+function mgAIHideForm(w){document.getElementById(w==='tab'?'mgAINewTabForm':'mgAINewSecForm').classList.remove('show');}
+window.mgAIHideForm=mgAIHideForm;
+
+function mgAICreateTab(){
+  var name=document.getElementById('mgAINewTabName').value.trim();
+  if(!name){toast('⚠️ Digite o nome.');return;}
+  var key='custom_'+Date.now();
+  window.D[key]={label:name,sections:[]};
+  window.G[key]='SETOR / ESPECIALIDADE';
+  window.IC[key]='📋';
+  if(window.save)window.save();
+  if(window.buildNav)window.buildNav();
+  document.getElementById('mgAINewTabName').value='';
+  document.getElementById('mgAINewTabForm').classList.remove('show');
+  mgAIBuildDest();
+  setTimeout(function(){var btn=document.querySelector('.mgai-dest-tab[data-key="'+key+'"]');if(btn)mgAISelectTab(key,btn);},80);
+  toast('✅ Aba "'+name+'" criada!');
+}
+window.mgAICreateTab=mgAICreateTab;
+
+function mgAICreateSec(){
+  var name=document.getElementById('mgAINewSecName').value.trim();
+  if(!name){toast('⚠️ Digite o nome.');return;}
+  if(_mgAIDestKey===null){toast('⚠️ Selecione uma aba primeiro.');return;}
+  var tab=window.D[_mgAIDestKey];
+  if(!tab.sections)tab.sections=[];
+  tab.sections.push({title:name,items:[]});
+  if(window.save)window.save();
+  var newSi=tab.sections.length-1;
+  document.getElementById('mgAINewSecName').value='';
+  document.getElementById('mgAINewSecForm').classList.remove('show');
+  var tabBtn=document.querySelector('.mgai-dest-tab[data-key="'+_mgAIDestKey+'"]');
+  if(tabBtn)mgAISelectTab(_mgAIDestKey,tabBtn);
+  setTimeout(function(){var bs=document.querySelectorAll('.mgai-dest-sec');if(bs[newSi])mgAISelectSec(newSi,bs[newSi]);},80);
+  toast('✅ Secao "'+name+'" criada!');
+}
+window.mgAICreateSec=mgAICreateSec;
+
+function mgAICheckSend(){
+  if(_mgAIResult&&_mgAIDestKey!==null&&_mgAIDestSec!==null)
+    document.getElementById('mgAISendBtn').classList.add('show');
+}
+
+// ── Chamar IA ──
+async function mgAIRun(){
+  var text=document.getElementById('mgAIInput').value.trim();
+  if(!text){toast('⚠️ Cole o conteudo.');return;}
+  var peso='';
+  if(_mgAIType==='pediatria'){
+    peso=document.getElementById('mgAIPesoInput').value.trim();
+    if(!peso){toast('⚠️ Informe o peso.');return;}
+  }
+  document.getElementById('mgAIGoBtn').disabled=true;
+  document.getElementById('mgAIResult').classList.remove('show');
+  document.getElementById('mgAILoading').classList.add('show');
+  document.getElementById('mgAISendBtn').classList.remove('show');
+  var res=await mgAICallAPI(text,_mgAIType,peso);
+  document.getElementById('mgAILoading').classList.remove('show');
+  document.getElementById('mgAIGoBtn').disabled=false;
+  document.getElementById('mgAIGoBtn').textContent='🔄 Reorganizar';
+  if(!res)return;
+  _mgAIResult=res;
+  document.getElementById('mgAIResultPrescText').textContent=res.presc;
+  var nb=document.getElementById('mgAIResultNotesBlock');
+  document.getElementById('mgAIResultNotesText').textContent=res.notes;
+  nb.style.display=res.notes?'block':'none';
+  document.getElementById('mgAIResult').classList.add('show');
+  if(!document.getElementById('mgAITitleInput').value){
+    var fl=(res.presc||'').split('\n').find(function(l){return l.trim()&&!/^USO\s/i.test(l.trim());})||'';
+    document.getElementById('mgAITitleInput').value=fl.replace(/^\d+[\.\t]\s*/,'').replace(/\s*—+.*/,'').trim().slice(0,60);
+  }
+  if(!_mgAIDestKey){
+    var ak=_mgAIType==='pediatria'?'pediatria':_mgAIType==='obstetricia'?'obstetricia':_mgAIType==='prescrever'?'diluicoes':'receitas';
+    var ab=document.querySelector('.mgai-dest-tab[data-key="'+ak+'"]')||document.querySelector('.mgai-dest-tab');
+    if(ab)mgAISelectTab(ak||ab.dataset.key,ab);
+  }
+  mgAICheckSend();
+}
+window.mgAIRun=mgAIRun;
+
+function mgAISend(){
+  if(!_mgAIResult){toast('⚠️ Execute a IA.');return;}
+  if(_mgAIDestKey===null){toast('⚠️ Selecione a aba.');return;}
+  if(_mgAIDestSec===null){toast('⚠️ Selecione a secao.');return;}
+  var k=_mgAIDestKey,si=_mgAIDestSec;
+  var tab=window.D&&window.D[k];
+  if(!tab){toast('⚠️ Aba nao encontrada.');return;}
+  if(!tab.sections)tab.sections=[];
+  if(!tab.sections[si])tab.sections[si]={title:'Nova Secao',items:[]};
+  if(!tab.sections[si].items)tab.sections[si].items=[];
+  var title=document.getElementById('mgAITitleInput').value.trim()||'Prescricao via IA';
+  var ico=_mgAIType==='pediatria'?'👶':_mgAIType==='obstetricia'?'🤰':_mgAIType==='prescrever'?'⚡':'💊';
+  tab.sections[si].items.push({id:'ai_'+Date.now(),icon:ico,title:title,badge:null,content:_mgAIResult.presc,notes:_mgAIResult.notes||''});
+  if(window.save)window.save();
+  mgAIClose();
+  if(window.goTo)window.goTo(k);
+  var newIi=tab.sections[si].items.length-1;
+  setTimeout(function(){
+    var row=document.getElementById('row-'+k+'-'+si+'-'+newIi);
+    if(row){row.classList.add('open');row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='2px solid #2563eb';setTimeout(function(){row.style.outline='';},2200);}
+  },350);
+  toast('✅ Salvo em "'+tab.sections[si].title+'"!');
+}
+window.mgAISend=mgAISend;
+
+// ═══ MINI-MODAL CONFIRMACAO ═══
+function mgAICOpen(k,si,ii){
+  var item=window.D&&window.D[k]&&window.D[k].sections&&window.D[k].sections[si]&&window.D[k].sections[si].items&&window.D[k].sections[si].items[ii];
+  if(!item)return;
+  _mgAIC={k:k,si:si,ii:ii};
+  document.getElementById('mgAICTitle').textContent='🤖 Corrigir: '+item.title;
+  var orig=(item.content||'')+(item.notes?'\n\nNOTAS:\n'+item.notes:'');
+  document.getElementById('mgAICOriginal').textContent=orig;
+  document.getElementById('mgAICLoading').classList.remove('show');
+  document.getElementById('mgAICResultSection').classList.remove('show');
+  document.getElementById('mgAICResultPresc').value='';
+  document.getElementById('mgAICResultNotes').value='';
+  document.getElementById('mgAICNotesWrap').style.display='none';
+  document.getElementById('mgAICConfirmBtn').style.display='none';
+  document.getElementById('mgAIConfirmModal').classList.add('show');
+  // detecta tipo
+  var tipo='adulto';
+  if(k==='pediatria')tipo='pediatria';
+  else if(k==='obstetricia')tipo='obstetricia';
+  else if(k==='diluicoes')tipo='prescrever';
+  document.getElementById('mgAICLoading').classList.add('show');
+  mgAICallAPI(orig,tipo,'').then(function(res){
+    document.getElementById('mgAICLoading').classList.remove('show');
+    if(!res)return;
+    document.getElementById('mgAICResultPresc').value=res.presc;
+    document.getElementById('mgAICResultNotes').value=res.notes||'';
+    document.getElementById('mgAICNotesWrap').style.display=res.notes?'block':'none';
+    document.getElementById('mgAICResultSection').classList.add('show');
+    document.getElementById('mgAICConfirmBtn').style.display='flex';
+  });
+}
+window.mgAICOpen=mgAICOpen;
+
+function mgAICClose(){document.getElementById('mgAIConfirmModal').classList.remove('show');_mgAIC={k:null,si:null,ii:null};}
+window.mgAICClose=mgAICClose;
+
+function mgAICConfirm(){
+  var k=_mgAIC.k,si=_mgAIC.si,ii=_mgAIC.ii;
+  if(k===null)return;
+  var item=window.D&&window.D[k]&&window.D[k].sections&&window.D[k].sections[si]&&window.D[k].sections[si].items&&window.D[k].sections[si].items[ii];
+  if(!item)return;
+  item.content=document.getElementById('mgAICResultPresc').value;
+  item.notes=document.getElementById('mgAICResultNotes').value;
+  if(window.save)window.save();
+  mgAICClose();
+  if(window.renderTab)window.renderTab(window.activeTab);
+  setTimeout(function(){
+    var row=document.getElementById('row-'+k+'-'+si+'-'+ii);
+    if(row){row.classList.add('open');row.style.outline='2px solid #7c3aed';setTimeout(function(){row.style.outline='';},2000);}
+  },200);
+  toast('✅ Prescricao corrigida!');
+}
+window.mgAICConfirm=mgAICConfirm;
+
+// ═══ CHAMADA CENTRAL DA API ═══
+async function mgAICallAPI(text,tipo,peso){
+  var isPed=(tipo==='pediatria'),isPres=(tipo==='prescrever');
+  var sys=[
+    'Voce e um assistente medico que organiza prescricoes para o MedGuia Pro.',
+    'Retorne APENAS JSON valido: {"presc":"...","notes":"..."}. Sem markdown.',
+    '',
+    'REGRAS GERAIS:',
+    '1. "presc"=medicamentos. "notes"=alternativas+observacoes (com receita completa de cada alternativa).',
+    '2. Numere: 1. 2. 3.',
+    '3. Nunca duplique medicamentos.',
+    '4. Cabecalho de via antes de cada grupo: USO ORAL, USO TOPICO, VIA ENDOVENOSA, USO INALATORIO etc.',
+    ''
+  ];
+  if(isPres){
+    sys.push(
+      'PRESCREVER AGORA (EV/IM): sem travessoes (——). Instrucao na mesma linha apos → ou ·',
+      'Exemplos:',
+      'DIPIRONA 1g (1 AMP=2ml) → fazer 20 ml EV lento 5 min',
+      'CETOPROFENO 100mg → 1 amp + 100 ml SF 0,9% · EV 20 min',
+      ''
+    );
+  } else if(isPed){
+    sys.push(
+      'PEDIATRIA'+(peso?' peso='+peso+' kg':'')+':',
+      'Nome Concentracao ——————— 01 FR',
+      '\tDar XX ml (Calculo: [macete, ex: peso / 3]) de [frequencia] por [duracao].',
+      'NUNCA substitua XX pelo valor calculado. Sempre XX + formula entre parenteses.',
+      'Exemplos:',
+      'Amoxicilina 250 mg/5 ml ——————— 01 FR',
+      '\tDar XX ml (Calculo: peso / 3) de 8/8h por 7 dias.',
+      'Dipirona Gotas 500 mg/ml ——————— 01 FR',
+      '\tDar XX gotas (Calculo: 1 gota por kg) de 6/6h se febre.',
+      ''
+    );
+  } else {
+    sys.push(
+      'ADULTO: Nome Concentracao ——————————————— XX CP/FR/AMP/TB',
+      '\tTomar/Aplicar N unidade(s) de POSOLOGIA por DURACAO.',
+      'Exemplos:',
+      'Amoxicilina 500 mg ——————————————— 21 CP',
+      '\tTomar 01 comprimido de 8/8h por 7 dias.',
+      ''
+    );
+  }
+  sys.push('NOTAS: cada alternativa com receita completa no mesmo formato. Se nao houver, "notes":"".');
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,system:sys.join('\n'),messages:[{role:'user',content:'Organize:\n\n'+text}]})
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var d=await r.json();
+    var raw=(d.content||[]).map(function(b){return b.type==='text'?b.text:'';}).join('');
+    raw=raw.replace(/^```json?\s*/,'').replace(/\s*```$/,'').trim();
+    var p=JSON.parse(raw);
+    return{presc:(p.presc||'').trim(),notes:(p.notes||'').trim()};
+  }catch(e){toast('❌ Erro IA: '+(e.message||e));console.error(e);return null;}
+}
+window.mgAICallAPI=mgAICallAPI;
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    if(document.getElementById('mgAIConfirmModal').classList.contains('show'))mgAICClose();
+    else if(document.getElementById('mgAIModal').classList.contains('show'))mgAIClose();
+  }
+});
+</script>
 </body>
 </html>
