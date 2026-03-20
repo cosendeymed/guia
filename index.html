@@ -7216,6 +7216,24 @@ function pedFillAndPrint(k, si, ii) {
   document.getElementById('wrd_nome').value    = '';
   document.getElementById('wrd_obs').value     = obsPartes.join(' | ');
   document.getElementById('wrd_content').value = filled;
+
+  // ── Painel de Notas Clínicas (igual ao openWordModal em Receitas) ──
+  var _np = document.getElementById('wrd_notes_panel');
+  var _nc = document.getElementById('wrd_notes_content');
+  var _nt = (item.notes || '').trim();
+  if (_np && _nc) {
+    if (_nt) {
+      _nc.innerHTML = _nt.split('\n').map(function(line) {
+        var m = line.match(/^(•\s+)(.+?)(\s*[:：]?\s*)$/);
+        if (m) { return m[1] + '<strong style="color:#92400e">' + m[2].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + m[3] + '</strong>'; }
+        return line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      }).join('\n');
+      _np.style.display = 'flex';
+    } else {
+      _np.style.display = 'none';
+    }
+  }
+
   // Guarda dados pediátricos para o gerador de receita usar no cabeçalho
   window._pedReceita = { peso: w, idade: idade, outroKey: outroKey, outroVal: outroVal };
   openModal('modalWord');
