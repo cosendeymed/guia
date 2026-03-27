@@ -516,7 +516,22 @@ textarea.field { resize: vertical; font-family: var(--mono); line-height: 1.65; 
 ───────────────────────────────────── */
 .calc-page { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .calc-card { background: var(--white); border: 1.5px solid var(--gray300); border-radius: 10px; overflow: hidden; }
-.calc-card-head { padding: 11px 14px; background: var(--gray50); border-bottom: 1.5px solid var(--gray200); font-size: 13px; font-weight: 700; color: var(--gray800); display:flex; align-items:center; justify-content:space-between; }
+.calc-card-head { padding: 11px 14px; background: var(--gray50); border-bottom: 1.5px solid var(--gray200); font-size: 13px; font-weight: 700; color: var(--gray800); display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; transition:background .13s; }
+.calc-card-head:hover { background:#eef2ff; }
+.calc-card-head .calc-chevron { font-size:12px; color:var(--gray400); transition:transform .22s; margin-left:8px; flex-shrink:0; line-height:1; }
+/* ── Botões de ação do header ── */
+.ch-actions { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.ch-btn { display:inline-flex; align-items:center; gap:4px; border-radius:6px; font-size:11px; font-weight:600; font-family:var(--sans); cursor:pointer; padding:3px 8px; line-height:1.4; border:1.5px solid transparent; transition:background .12s, border-color .12s, color .12s; white-space:nowrap; }
+.ch-edit { background:#fff7ed; border-color:#fed7aa; color:#ea580c; }
+.ch-edit:hover { background:#ffedd5; border-color:#fb923c; }
+.ch-add  { background:#eff6ff; border-color:#bfdbfe; color:#2563eb; }
+.ch-add:hover  { background:#dbeafe; border-color:#93c5fd; }
+.ch-del  { background:#fff5f5; border-color:#fca5a5; color:#dc2626; padding:3px 6px; }
+.ch-del:hover  { background:#fee2e2; border-color:#f87171; }
+.calc-card.collapsed .calc-chevron { transform:rotate(-90deg); }
+.calc-card.collapsed .calc-body { display:none !important; }
+.calc-card.collapsed .calc-edit-overlay { display:none !important; }
+.calc-card.collapsed .calc-card-head { border-bottom:none; }
 .calc-edit-btn { background:none; border:1.5px solid transparent; color:var(--gray400); padding:3px 8px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:600; transition:.12s; font-family:var(--sans); white-space:nowrap; }
 .calc-edit-btn:hover { background:#fffbeb; border-color:#fcd34d; color:#92400e; }
 .calc-edit-btn.active { background:#fffbeb; border-color:#fbbf24; color:#92400e; }
@@ -538,7 +553,11 @@ textarea.field { resize: vertical; font-family: var(--mono); line-height: 1.65; 
 .ci:focus { border-color: var(--blue); }
 .cc { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--gray700); cursor: pointer; padding: 3px 0; }
 .cc input { accent-color: var(--blue); width: 14px; height: 14px; }
-.cresult { background: var(--blue-lt); border: 1.5px solid var(--blue-bd); border-radius: 7px; padding: 10px 13px; font-family: var(--mono); font-size: 12px; line-height: 1.85; color: var(--gray700); display: none; white-space: pre-line; margin-top: 2px; }
+.cresult { background: var(--blue-lt); border: 1.5px solid var(--blue-bd); border-radius: 7px; padding: 10px 13px; font-family: var(--mono); font-size: 12px; line-height: 1.85; color: var(--gray700); display: none; white-space: pre-wrap; margin-top: 2px; min-height: 40px; outline: none; transition: background .13s, outline .13s; }
+.cresult[contenteditable="true"] { outline: 2px dashed #fbbf24; background: #fffbeb; cursor: text; }
+/* Bloco resultado calculado dentro do cresult */
+.cresult [contenteditable="true"]:focus { outline: 2px dashed #fbbf24; background: #fffbeb; border-radius: 5px; padding: 4px 6px; margin: -4px -6px; }
+.cresult [contenteditable="true"]:hover { background: rgba(251,191,36,.07); border-radius: 5px; cursor: text; }
 .cresult strong { color: var(--blue); }
 
 /* ─────────────────────────────────────
@@ -1597,7 +1616,7 @@ window.goTo = function(k) {
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeModal('modalWord')">Cancelar</button>
-      <button onclick="gerarControleEspecial()" style="background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">📋 Controle Especial</button>
+      <button onclick="gerarControleEspecial()" style="background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">🖨️ Controle Especial</button>
       <button class="btn-ok" onclick="gerarWord()">🖨️ Gerar Receita</button>
     </div>
   </div>
@@ -2935,6 +2954,7 @@ function runTabSearch(q, k) {
           <div class="row-footer">
             <button class="btn-copy" onclick="copyItem('${k}',${si},${ii})">📋 Copiar</button>
             ${(k==='receitas'||k==='documentos'||k==='obstetricia') ? `<button class="btn-word" onclick="openWordModal('${k}',${si},${ii})">🖨️ Receita</button>` : ''}
+            ${k==='pediatria' ? `<button class="btn-word" onclick="openWordModal('${k}',${si},${ii})">🖨️ Receita</button>` : ''}
             ${k==='pediatria' && (/___/.test(item.content||'')||/\bXX\b/.test(item.content||'')) ? `<button class="btn-word" onclick="pedFillAndPrint('${k}',${si},${ii})" style="background:#f0fdf4;color:#15803d;border:1.5px solid #bbf7d0">⚡ Preencher doses</button>` : ''}
           </div>
         </div>
@@ -5255,11 +5275,22 @@ function renderCalc(container) {
 
   container.innerHTML = `<div class="calc-page">
 
+  <!-- ══ BOTÕES SVG HELPER (definidos aqui, reutilizados por JS no collapse init) ══ -->
+
   <!-- IMC -->
   <div class="calc-card">
     <div class="calc-card-head">
       <span>${esc(imc.title)}</span>
-      <button class="calc-edit-btn" id="calc-editbtn-imc" onclick="calcToggleEdit('imc')" title="Editar calculadora">✏️ Editar</button><button onclick="calcDelete('imc')" style="background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">🗑</button>
+      <div class="ch-actions">
+        <button class="ch-btn ch-edit" id="calc-editbtn-imc" onclick="calcToggleEdit('imc')" title="Editar">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Editar
+        </button>
+        <button class="ch-btn ch-del" onclick="calcDelete('imc')" title="Excluir">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="calc-chevron">▼</span>
+      </div>
     </div>
     <div class="calc-body">
       ${imcFields}
@@ -5270,10 +5301,19 @@ function renderCalc(container) {
   </div>
 
   <!-- Glasgow -->
-  <div class="calc-card">
+  <div class="calc-card collapsed">
     <div class="calc-card-head">
       <span>${esc(glasgow.title)}</span>
-      <button class="calc-edit-btn" id="calc-editbtn-glasgow" onclick="calcToggleEdit('glasgow')" title="Editar calculadora">✏️ Editar</button><button onclick="calcDelete('glasgow')" style="background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">🗑</button>
+      <div class="ch-actions">
+        <button class="ch-btn ch-edit" id="calc-editbtn-glasgow" onclick="calcToggleEdit('glasgow')" title="Editar">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Editar
+        </button>
+        <button class="ch-btn ch-del" onclick="calcDelete('glasgow')" title="Excluir">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="calc-chevron">▼</span>
+      </div>
     </div>
     <div class="calc-body">
       ${glasgowSelects}
@@ -5284,10 +5324,19 @@ function renderCalc(container) {
   </div>
 
   <!-- CURB-65 -->
-  <div class="calc-card">
+  <div class="calc-card collapsed">
     <div class="calc-card-head">
       <span>${esc(curb.title)}</span>
-      <button class="calc-edit-btn" id="calc-editbtn-curb" onclick="calcToggleEdit('curb')" title="Editar calculadora">✏️ Editar</button><button onclick="calcAddCriteria('curb')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">➕ Critério</button><button onclick="calcDelete('curb')" style="background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">🗑</button>
+      <div class="ch-actions">
+        <button class="ch-btn ch-edit" id="calc-editbtn-curb" onclick="calcToggleEdit('curb')" title="Editar">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Editar
+        </button>
+        <button class="ch-btn ch-del" onclick="calcDelete('curb')" title="Excluir">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="calc-chevron">▼</span>
+      </div>
     </div>
     <div class="calc-body">
       ${curb.criteria.map(function(c){return chkLine(c,'curb');}).join('')}
@@ -5298,10 +5347,19 @@ function renderCalc(container) {
   </div>
 
   <!-- Wells -->
-  <div class="calc-card">
+  <div class="calc-card collapsed">
     <div class="calc-card-head">
       <span>${esc(wells.title)}</span>
-      <button class="calc-edit-btn" id="calc-editbtn-wells" onclick="calcToggleEdit('wells')" title="Editar calculadora">✏️ Editar</button><button onclick="calcAddCriteria('wells')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">➕ Critério</button><button onclick="calcDelete('wells')" style="background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">🗑</button>
+      <div class="ch-actions">
+        <button class="ch-btn ch-edit" id="calc-editbtn-wells" onclick="calcToggleEdit('wells')" title="Editar">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Editar
+        </button>
+        <button class="ch-btn ch-del" onclick="calcDelete('wells')" title="Excluir">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="calc-chevron">▼</span>
+      </div>
     </div>
     <div class="calc-body">
       ${wells.criteria.map(function(c){return chkLine(c,'wells');}).join('')}
@@ -5312,10 +5370,19 @@ function renderCalc(container) {
   </div>
 
   <!-- Alvarado -->
-  <div class="calc-card">
+  <div class="calc-card collapsed">
     <div class="calc-card-head">
       <span>${esc(alvarado.title)}</span>
-      <button class="calc-edit-btn" id="calc-editbtn-alvarado" onclick="calcToggleEdit('alvarado')" title="Editar calculadora">✏️ Editar</button><button onclick="calcAddCriteria('alvarado')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">➕ Critério</button><button onclick="calcDelete('alvarado')" style="background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">🗑</button>
+      <div class="ch-actions">
+        <button class="ch-btn ch-edit" id="calc-editbtn-alvarado" onclick="calcToggleEdit('alvarado')" title="Editar">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Editar
+        </button>
+        <button class="ch-btn ch-del" onclick="calcDelete('alvarado')" title="Excluir">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="calc-chevron">▼</span>
+      </div>
     </div>
     <div class="calc-body">
       ${alvarado.criteria.map(function(c){return chkLine(c,'alvarado');}).join('')}
@@ -5326,10 +5393,19 @@ function renderCalc(container) {
   </div>
 
   <!-- Ranson -->
-  <div class="calc-card">
+  <div class="calc-card collapsed">
     <div class="calc-card-head">
       <span>${esc(ranson.title)}</span>
-      <button class="calc-edit-btn" id="calc-editbtn-ranson" onclick="calcToggleEdit('ranson')" title="Editar calculadora">✏️ Editar</button><button onclick="calcAddCriteria('ranson')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">➕ Critério</button><button onclick="calcDelete('ranson')" style="background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:4px">🗑</button>
+      <div class="ch-actions">
+        <button class="ch-btn ch-edit" id="calc-editbtn-ranson" onclick="calcToggleEdit('ranson')" title="Editar">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Editar
+        </button>
+        <button class="ch-btn ch-del" onclick="calcDelete('ranson')" title="Excluir">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="calc-chevron">▼</span>
+      </div>
     </div>
     <div class="calc-body">
       <p style="font-size:11px;color:var(--gray500);margin-bottom:4px">Na admissão:</p>
@@ -5340,6 +5416,225 @@ function renderCalc(container) {
       <div id="r_ran" class="cresult"></div>
     </div>
     ${buildCriteriaEditOverlay('ranson')}
+  </div>
+
+  <!-- ══ TFG ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#eff6ff,#f8fafc)">
+      <span>🫘 Taxa de Filtração Glomerular — CKD-EPI / MDRD</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <div class="cf"><label>Creatinina sérica (mg/dL)</label><input type="number" id="tfg_cr" class="ci" placeholder="Ex: 1.2" step="0.01" min="0.1"></div>
+      <div class="cf"><label>Idade (anos)</label><input type="number" id="tfg_idade" class="ci" placeholder="Ex: 55" min="18" max="120"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>Sexo</label><select id="tfg_sexo" class="ci"><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
+        <div class="cf"><label>Raça</label><select id="tfg_raca" class="ci"><option value="other">Não negro</option><option value="black">Negro</option></select></div>
+      </div>
+      <button class="btn-ok" onclick="calcTFG()">Calcular TFG</button>
+      <div id="r_tfg" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ GASOMETRIA ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#fdf4ff,#f8fafc)">
+      <span>🫁 Gasometria Arterial — Interpretação Completa</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>pH</label><input type="number" id="gaso_ph" class="ci" placeholder="7,35–7,45" step="0.01" min="6.8" max="7.8"></div>
+        <div class="cf"><label>pCO₂ (mmHg)</label><input type="number" id="gaso_pco2" class="ci" placeholder="35–45" step="0.1"></div>
+        <div class="cf"><label>HCO₃⁻ (mEq/L)</label><input type="number" id="gaso_hco3" class="ci" placeholder="22–26" step="0.1"></div>
+        <div class="cf"><label>pO₂ (mmHg)</label><input type="number" id="gaso_po2" class="ci" placeholder="80–100" step="0.1"></div>
+        <div class="cf"><label>Na⁺ (mEq/L)</label><input type="number" id="gaso_na" class="ci" placeholder="138" step="1"></div>
+        <div class="cf"><label>Cl⁻ (mEq/L)</label><input type="number" id="gaso_cl" class="ci" placeholder="102" step="1"></div>
+        <div class="cf"><label>Albumina (g/dL)</label><input type="number" id="gaso_alb" class="ci" placeholder="4.0 (opt)" step="0.1"></div>
+        <div class="cf"><label>Lactato (mmol/L)</label><input type="number" id="gaso_lac" class="ci" placeholder="opt" step="0.1"></div>
+      </div>
+      <button class="btn-ok" onclick="calcGasometria()">Interpretar Gasometria</button>
+      <div id="r_gaso" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ CHA2DS2-VASc ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#fef3f2,#f8fafc)">
+      <span>❤️ CHA₂DS₂-VASc — Risco de AVC em FA</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      ${['c2_ic','c2_has','c2_idade75','c2_dm','c2_avc','c2_vasc','c2_idade65','c2_sexoF'].map((id,i)=>`
+      <label class="cc"><input type="checkbox" id="${id}"> ${ ['IC/FE reduzida (+1)','Hipertensão (+1)','Idade ≥ 75 anos (+2)','Diabetes mellitus (+1)','AVC/AIT/TEP prévio (+2)','Doença vascular (IAM, DAP, placa aórtica) (+1)','Idade 65–74 anos (+1)','Sexo feminino (+1)'][i] }</label>`).join('')}
+      <button class="btn-ok" onclick="calcCHA2DS2()">Calcular</button>
+      <div id="r_cha2" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ HAS-BLED ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#fff7ed,#f8fafc)">
+      <span>🩹 HAS-BLED — Risco de Sangramento</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      ${['hb_has','hb_renal','hb_hepatico','hb_avc','hb_sangramento','hb_inr','hb_drogas','hb_alcool','hb_idade65'].map((id,i)=>`
+      <label class="cc"><input type="checkbox" id="${id}"> ${ ['Hipertensão não controlada (+1)','Disfunção renal (diálise, Cr>2.3, transplante) (+1)','Disfunção hepática (cirrose, bil>2×, AST/ALT>3×) (+1)','AVC prévio (+1)','Sangramento/predisposição (coagulopatia, anemia) (+1)','INR lábil (<60% no alvo) (+1)','Fármacos antiagregantes/AINEs (+1)','Alcoolismo (+1)','Idade > 65 anos (+1)'][i] }</label>`).join('')}
+      <button class="btn-ok" onclick="calcHASBLED()">Calcular</button>
+      <div id="r_hasbled" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ ÂNION GAP ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#f0fdf4,#f8fafc)">
+      <span>🧪 Ânion Gap + Albumina + Delta-Delta</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>Na⁺ (mEq/L)</label><input type="number" id="ag_na" class="ci" placeholder="138"></div>
+        <div class="cf"><label>Cl⁻ (mEq/L)</label><input type="number" id="ag_cl" class="ci" placeholder="102"></div>
+        <div class="cf"><label>HCO₃⁻ (mEq/L)</label><input type="number" id="ag_hco3" class="ci" placeholder="24"></div>
+        <div class="cf"><label>Albumina (g/dL)</label><input type="number" id="ag_alb" class="ci" placeholder="4.0" step="0.1"></div>
+      </div>
+      <button class="btn-ok" onclick="calcAnionGap()">Calcular</button>
+      <div id="r_ag" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ FENa ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#ecfeff,#f8fafc)">
+      <span>💧 Fração de Excreção de Sódio (FENa)</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>Na urina (mEq/L)</label><input type="number" id="fena_naU" class="ci" placeholder="Ex: 20"></div>
+        <div class="cf"><label>Na sérico (mEq/L)</label><input type="number" id="fena_naS" class="ci" placeholder="Ex: 138"></div>
+        <div class="cf"><label>Cr urina (mg/dL)</label><input type="number" id="fena_crU" class="ci" placeholder="Ex: 120"></div>
+        <div class="cf"><label>Cr sérica (mg/dL)</label><input type="number" id="fena_crS" class="ci" placeholder="Ex: 1.8"></div>
+      </div>
+      <button class="btn-ok" onclick="calcFENa()">Calcular FENa</button>
+      <div id="r_fena" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ OSMOLALIDADE ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#fff7ed,#f8fafc)">
+      <span>🧂 Osmolalidade + Correção Na pela Glicemia</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>Na⁺ sérico (mEq/L)</label><input type="number" id="osm_na" class="ci" placeholder="138"></div>
+        <div class="cf"><label>Glicemia (mg/dL)</label><input type="number" id="osm_gli" class="ci" placeholder="Ex: 90"></div>
+        <div class="cf"><label>BUN / Ureia (mg/dL)</label><input type="number" id="osm_bun" class="ci" placeholder="Ex: 14 (BUN)"></div>
+        <div class="cf"><label>Etanol mg/dL (opt)</label><input type="number" id="osm_etoh" class="ci" placeholder="0"></div>
+      </div>
+      <label class="cc" style="margin-top:4px"><input type="checkbox" id="osm_ureia_total"> Valor inserido é Ureia total (÷2.8 para BUN)</label>
+      <button class="btn-ok" onclick="calcOsmolalidade()">Calcular</button>
+      <div id="r_osm" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ DÉFICIT ÁGUA LIVRE ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#f0f9ff,#f8fafc)">
+      <span>💦 Déficit de Água Livre — Hipernatremia</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>Na⁺ atual (mEq/L)</label><input type="number" id="dal_na" class="ci" placeholder="Ex: 158"></div>
+        <div class="cf"><label>Peso (kg)</label><input type="number" id="dal_peso" class="ci" placeholder="Ex: 70"></div>
+        <div class="cf"><label>Sexo</label><select id="dal_sexo" class="ci"><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
+        <div class="cf"><label>Na⁺ alvo (mEq/L)</label><input type="number" id="dal_na_alvo" class="ci" value="140"></div>
+      </div>
+      <button class="btn-ok" onclick="calcDeficitAgua()">Calcular</button>
+      <div id="r_dal" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ SOFA / qSOFA ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#fff1f2,#f8fafc)">
+      <span>🔴 SOFA / qSOFA — Sepse</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <p style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:6px">qSOFA (triagem rápida)</p>
+      <label class="cc"><input type="checkbox" id="qsofa_nc"> Alteração nível de consciência (Glasgow &lt; 15)</label>
+      <label class="cc"><input type="checkbox" id="qsofa_fr"> FR ≥ 22 irpm</label>
+      <label class="cc"><input type="checkbox" id="qsofa_pa"> PAS ≤ 100 mmHg</label>
+      <button class="btn-ok" style="margin-top:8px;margin-bottom:8px" onclick="calcQSOFA()">Calcular qSOFA</button>
+      <div id="r_qsofa" class="cresult" style="margin-bottom:10px"></div>
+      <p style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:6px">SOFA Score</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>PaO₂/FiO₂</label><input type="number" id="sofa_pf" class="ci" placeholder="Ex: 300"></div>
+        <div class="cf"><label>Plaquetas (×10³)</label><input type="number" id="sofa_plaq" class="ci" placeholder="Ex: 150"></div>
+        <div class="cf"><label>Bilirrubina (mg/dL)</label><input type="number" id="sofa_bili" class="ci" placeholder="Ex: 1.0" step="0.1"></div>
+        <div class="cf"><label>Glasgow</label><input type="number" id="sofa_gcs" class="ci" placeholder="15" min="3" max="15"></div>
+        <div class="cf"><label>Creatinina (mg/dL)</label><input type="number" id="sofa_cr" class="ci" placeholder="Ex: 1.0" step="0.1"></div>
+        <div class="cf"><label>PAM / Vasopressor</label>
+          <select id="sofa_pam" class="ci">
+            <option value="0">PAM ≥ 70 (0)</option>
+            <option value="1">PAM &lt; 70 (1)</option>
+            <option value="2">Dopa ≤ 5 ou Dobu (2)</option>
+            <option value="3">Dopa 5-15 ou Nora ≤ 0,1 (3)</option>
+            <option value="4">Dopa &gt; 15 ou Nora &gt; 0,1 (4)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-ok" onclick="calcSOFA()">Calcular SOFA</button>
+      <div id="r_sofa" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ ÍNDICE DE CHOQUE ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#fef3f2,#f8fafc)">
+      <span>💥 Índice de Choque — Instabilidade Hemodinâmica</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>FC (bpm)</label><input type="number" id="ic_fc" class="ci" placeholder="Ex: 110"></div>
+        <div class="cf"><label>PAS (mmHg)</label><input type="number" id="ic_pas" class="ci" placeholder="Ex: 90"></div>
+      </div>
+      <button class="btn-ok" onclick="calcIndiceChoque()">Calcular</button>
+      <div id="r_ichoque" class="cresult"></div>
+    </div>
+  </div>
+
+  <!-- ══ REPOSIÇÃO Na / K ══ -->
+  <div class="calc-card collapsed">
+    <div class="calc-card-head" style="background:linear-gradient(135deg,#f0fdf4,#f8fafc)">
+      <span>⚡ Reposição de Sódio e Potássio</span>
+      <div class="ch-actions"><button class="ch-btn ch-edit" onclick="alert('✏️ Para editar o resultado, calcule primeiro e clique diretamente no texto do resultado.')" title="Editar resultado calculado"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L5.5 17.5 2 18l.5-3.5L14.7 2.3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</button><button class="ch-btn ch-del" onclick="toast('Calculadora padrão — não pode ser removida')" title="Calculadora padrão"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="calc-chevron">▼</span></div>
+    </div>
+    <div class="calc-body">
+      <p style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px">Déficit de Sódio (Hiponatremia)</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>Na⁺ atual (mEq/L)</label><input type="number" id="repna_atual" class="ci" placeholder="Ex: 118"></div>
+        <div class="cf"><label>Na⁺ alvo (mEq/L)</label><input type="number" id="repna_alvo" class="ci" value="125"></div>
+        <div class="cf"><label>Peso (kg)</label><input type="number" id="repna_peso" class="ci" placeholder="Ex: 70"></div>
+        <div class="cf"><label>Sexo</label><select id="repna_sexo" class="ci"><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
+      </div>
+      <button class="btn-ok" style="margin-bottom:8px" onclick="calcReposicaoNa()">Calcular déficit de Na⁺</button>
+      <div id="r_repna" class="cresult" style="margin-bottom:12px"></div>
+      <p style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px">Déficit de Potássio</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="cf"><label>K⁺ atual (mEq/L)</label><input type="number" id="repk_atual" class="ci" placeholder="Ex: 2.8" step="0.1"></div>
+        <div class="cf"><label>K⁺ alvo (mEq/L)</label><input type="number" id="repk_alvo" class="ci" value="4.0" step="0.1"></div>
+        <div class="cf"><label>Peso (kg)</label><input type="number" id="repk_peso" class="ci" placeholder="Ex: 70"></div>
+      </div>
+      <button class="btn-ok" onclick="calcReposicaoK()">Calcular déficit de K⁺</button>
+      <div id="r_repk" class="cresult"></div>
+    </div>
   </div>
 
   <div style="padding:10px 14px 4px;border-top:1px solid var(--gray200);margin-top:8px">
@@ -5355,39 +5650,92 @@ function renderCalc(container) {
       var calc = calcData[k];
       if (!calc) return;
       var crits = (calc.criteria||[]).map(function(c){ return chkLine(c,k); }).join('');
-      extra += '<div class="calc-card" style="margin:8px 14px">';
-      extra += '<div class="calc-card-head" style="display:flex;align-items:center;gap:4px"><span style="flex:1">'+esc(calc.title)+'</span>';
-      extra += '<button onclick="calcAddCriteria(\'' + k + '\')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer">➕ Critério</button>';
-      extra += '<button onclick="calcDelete(\'' + k + '\')" style="background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer">🗑</button>';
-      extra += '</div><div class="calc-body">' + crits + '</div></div>';
+      var SVG_PLUS = '<svg width="13" height="13" viewBox="0 0 20 20" fill="none"><line x1="10" y1="4" x2="10" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+      var SVG_DEL  = '<svg width="13" height="13" viewBox="0 0 20 20" fill="none"><polyline points="3,6 17,6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 6V4h4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 6l1 11h8l1-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      extra += '<div class="calc-card collapsed" style="margin:8px 14px">';
+      extra += '<div class="calc-card-head"><span style="flex:1">'+esc(calc.title)+'</span>';
+      extra += '<div class="ch-actions">';
+      // + Critério button removed
+      extra += '<button class="ch-btn ch-del" onclick="calcDelete(\''+k+'\')">'+SVG_DEL+'</button>';
+      extra += '<span class="calc-chevron">▼</span>';
+      extra += '</div></div>';
+      extra += '<div class="calc-body">'+crits+'</div></div>';
     });
     if (extra) container.innerHTML += extra;
   }
+
+  // ── Wiring click-to-collapse em todos os calc-card-head ──
+  container.querySelectorAll('.calc-card-head').forEach(function(head) {
+    head.addEventListener('click', function(e) {
+      if (e.target !== head && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) return;
+      head.closest('.calc-card').classList.toggle('collapsed');
+    });
+  });
 }
 
-function showRes(id, html) { const el=document.getElementById(id); if(!el)return; el.innerHTML=html; el.style.display='block'; }
+function showRes(id, html) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = html;
+  el.style.display = 'block';
+  el.contentEditable = 'true';
+  el.title = '✏️ Clique para editar o resultado';
+}
+
+// ── Toggle colapso de calculadoras ──
+function calcToggleCard(cardEl, e) {
+  // Não colapsar se clicou em botão interno
+  if (e && e.target !== cardEl && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) return;
+  cardEl.closest('.calc-card').classList.toggle('collapsed');
+}
+window.calcToggleCard = calcToggleCard;
+
+// ── Expor funções das calculadoras ao escopo global (onclick inline) ──
+window.calcTFG          = function(){ calcTFG(); };
+window.calcGasometria   = function(){ calcGasometria(); };
+window.calcCHA2DS2      = function(){ calcCHA2DS2(); };
+window.calcHASBLED      = function(){ calcHASBLED(); };
+window.calcAnionGap     = function(){ calcAnionGap(); };
+window.calcFENa         = function(){ calcFENa(); };
+window.calcOsmolalidade = function(){ calcOsmolalidade(); };
+window.calcDeficitAgua  = function(){ calcDeficitAgua(); };
+window.calcQSOFA        = function(){ calcQSOFA(); };
+window.calcSOFA         = function(){ calcSOFA(); };
+window.calcIndiceChoque = function(){ calcIndiceChoque(); };
+window.calcReposicaoNa  = function(){ calcReposicaoNa(); };
+window.calcReposicaoK   = function(){ calcReposicaoK(); };
+window.calcIMC          = function(){ calcIMC(); };
+window.calcGlasgow      = function(){ calcGlasgow(); };
+window.calcCURB         = function(){ calcCURB(); };
+window.calcWells        = function(){ calcWells(); };
+window.calcAlvarado     = function(){ calcAlvarado(); };
+window.calcRanson       = function(){ calcRanson(); };
+window.calcPedo         = function(){ calcPedo(); };
+window.calcAdulto       = function(){ calcAdulto(); };
 
 function calcPedo() {
   const p=parseFloat(document.getElementById('pp')?.value);
   if(!p||p<=0){toast('⚠️ Digite o peso');return;}
-  showRes('r_pp',`<strong>PESO: ${p} kg</strong>
-Dipirona 500mg/ml: <strong>${(p*0.03).toFixed(2)} ml</strong>
-Paracetamol 200mg/ml: <strong>${(p*0.05).toFixed(2)} ml</strong>
-Ibuprofeno 100mg/ml: <strong>${(p*0.07).toFixed(2)} ml</strong> (6/6h)
-Bromoprida 4mg/ml: <strong>${(p*0.04).toFixed(2)} ml</strong>
-Ondansetrona 2mg/ml: <strong>${(p*0.04).toFixed(2)} ml</strong> EV
-Prednisolona 3mg/ml: <strong>${(p*0.2).toFixed(1)} ml</strong> (1mg/kg/dia)
+  showResWithConduta('r_pp',
+    `<strong>DOSES PEDIÁTRICAS — ${p} kg</strong>
+Dipirona 500mg/ml: <strong>${(p*0.03).toFixed(2)} ml</strong> 6/6h
+Paracetamol 200mg/ml: <strong>${(p*0.05).toFixed(2)} ml</strong> 6/6h
+Ibuprofeno 100mg/ml: <strong>${(p*0.07).toFixed(2)} ml</strong> 8/8h (≥ 6m)
+Bromoprida 4mg/ml: <strong>${(p*0.04).toFixed(2)} ml</strong> 8/8h
+Ondansetrona 2mg/ml: <strong>${(p*0.04).toFixed(2)} ml</strong> EV 8/8h
+Prednisolona 3mg/ml: <strong>${(p*0.2).toFixed(1)} ml</strong>/dia (1 mg/kg)
 Diazepam 5mg/ml: <strong>${(p*0.06).toFixed(2)} ml</strong> EV/Retal
-Amoxicilina 250/5ml: <strong>${(p*0.3).toFixed(1)} ml</strong> 8/8h (50mg/kg/dia)
+Amoxicilina 250/5ml: <strong>${(p*0.3).toFixed(1)} ml</strong> 8/8h
 Azitromicina 200/5ml: <strong>${(p*0.075).toFixed(1)} ml</strong>/dia × 5d
-Adrenalina IM (puro): <strong>${(p/100).toFixed(3)} ml</strong> (0,01mg/kg)
-Salbutamol: <strong>${Math.min(Math.max(Math.round(p/10),1),10)} jatos</strong> c/ espaçador`);
+Adrenalina IM 1:1000: <strong>${(p/100).toFixed(3)} ml</strong> (0,01 mg/kg)
+Salbutamol: <strong>${Math.min(Math.max(Math.round(p/10),1),10)} jatos</strong> c/ espaçador`, 'pedo_doses');
 }
 
 function calcAdulto() {
   const p=parseFloat(document.getElementById('pa')?.value);
   if(!p||p<=0){toast('⚠️ Digite o peso');return;}
-  showRes('r_pa',`<strong>PESO: ${p} kg</strong>
+  showResWithConduta('r_pa',
+    `<strong>DOSES ADULTO — ${p} kg</strong>
 Morfina 10mg/ml: <strong>${(p*0.01).toFixed(2)} ml</strong> EV (0,1 mg/kg)
 Fentanil 50mcg/ml: <strong>${(p*0.04).toFixed(2)} ml</strong> EV (2 mcg/kg)
 Furosemida 10mg/ml: <strong>${(p*0.1).toFixed(1)} ml</strong> EV (1 mg/kg)
@@ -5396,7 +5744,7 @@ Succinilcolina 50mg/ml: <strong>${(p*0.03).toFixed(1)} ml</strong> EV (1,5 mg/kg
 Rocurônio 10mg/ml: <strong>${(p*0.12).toFixed(1)} ml</strong> EV (1,2 mg/kg)
 Midazolam 5mg/ml: <strong>${(p*0.02).toFixed(1)} ml</strong> EV (0,1 mg/kg)
 Adrenalina PCR: <strong>1 mg</strong> EV bolus
-Atropina: <strong>1 mg</strong> EV (máx 3 mg)`);
+Atropina: <strong>1 mg</strong> EV (máx 3 mg)`, 'adulto_doses');
 }
 
 function calcIMC() {
@@ -5405,10 +5753,10 @@ function calcIMC() {
   if(!h||!p){toast('⚠️ Preencha altura e peso');return;}
   const imc=(p/(h*h)).toFixed(1);
   const pMin=(18.5*h*h).toFixed(1), pMax=(24.9*h*h).toFixed(1);
-  const cat=imc<18.5?'🔵 Abaixo do peso':imc<25?'🟢 Peso normal':imc<30?'🟡 Sobrepeso':imc<35?'🟠 Obesidade Grau I':imc<40?'🔴 Obesidade Grau II':'🔴 Obesidade Grau III';
-  showRes('r_imc',`<strong>IMC: ${imc} kg/m²</strong>
-${cat}
-Peso ideal: ${pMin} – ${pMax} kg`);
+  const cat=imc<18.5?'🔵 Abaixo do peso':imc<25?'🟢 Peso normal':imc<30?'🟡 Sobrepeso':imc<35?'🟠 Obesidade Grau I':imc<40?'🔴 Obesidade Grau II':'🔴 Obesidade Grau III (Mórbida)';
+  const ck=imc<18.5?'imc_baixo':imc<25?'imc_normal':imc<30?'imc_sobrepeso':'imc_obesidade';
+  showResWithConduta('r_imc',
+    `<strong>IMC: ${imc} kg/m²</strong>\n${cat}\nPeso ideal (IMC 18,5–24,9): ${pMin} – ${pMax} kg`, ck);
 }
 
 function calcGlasgow() {
@@ -5416,8 +5764,10 @@ function calcGlasgow() {
   const V=+document.getElementById('gv')?.value||0;
   const M=+document.getElementById('gm')?.value||0;
   const t=O+V+M;
-  const r=t>=13?'🟢 Leve (13-15)':t>=9?'🟡 Moderado (9-12)':'🔴 Grave (≤8) — Considerar IOT';
-  showRes('r_gcs',`<strong>Glasgow: ${t}/15</strong> (O${O} + V${V} + M${M})\n${r}`);
+  const r=t>=13?'🟢 Leve (13-15)':t>=9?'🟡 Moderado (9-12)':'🔴 Grave (≤8) — considerar IOT';
+  const ck=t>=13?'glasgow_leve':t>=9?'glasgow_mod':'glasgow_grave';
+  showResWithConduta('r_gcs',
+    `<strong>Glasgow: ${t}/15</strong> (O${O} + V${V} + M${M})\n${r}`, ck);
 }
 
 function calcCURB() {
@@ -5426,7 +5776,9 @@ function calcCURB() {
   var s = criteria.reduce(function(a,c){ return a + (document.getElementById(c.id)?.checked ? c.score : 0); }, 0);
   var m=['<1%','~2.7%','~6.8%','~14%','~27%','~27%+'][s]||'';
   var r=s<=1?'🟢 Baixo risco — Ambulatorial':s===2?'🟡 Moderado — Considerar internação':'🔴 Alto risco — Internação / UTI';
-  showRes('r_curb',`<strong>CURB-65: ${s}/${max}</strong>\n${r}${m?'\nMortalidade estimada: '+m:''}`);
+  var ck=s<=1?'curb_baixo':s===2?'curb_mod':'curb_alto';
+  showResWithConduta('r_curb',
+    `<strong>CURB-65: ${s}/${max}</strong>\n${r}${m?'\nMortalidade estimada: '+m:''}`, ck);
 }
 
 function calcWells() {
@@ -5434,7 +5786,9 @@ function calcWells() {
   var max = criteria.filter(function(c){ return c.score > 0; }).reduce(function(a,c){ return a+c.score; }, 0);
   var s = criteria.reduce(function(a,c){ return a + (document.getElementById(c.id)?.checked ? c.score : 0); }, 0);
   var r=s<=1?'🟢 Baixa probabilidade — D-dímero':s<=2?'🟡 Moderada — Eco-Doppler':'🔴 Alta — Anticoagulação';
-  showRes('r_wells',`<strong>Wells TVP: ${s}</strong>\n${r}`);
+  var ck=s<=1?'wells_baixo':s<=2?'wells_mod':'wells_alto';
+  showResWithConduta('r_wells',
+    `<strong>Wells TVP: ${s}</strong>\n${r}`, ck);
 }
 
 function calcAlvarado() {
@@ -5442,7 +5796,9 @@ function calcAlvarado() {
   var max = criteria.reduce(function(a,c){ return a + Math.abs(c.score); }, 0);
   var s = criteria.reduce(function(a,c){ return a + (document.getElementById(c.id)?.checked ? c.score : 0); }, 0);
   var r=s<=3?'🟢 Baixo risco':s<=6?'🟡 Risco moderado — Investigar':'🔴 Alto risco — Avaliação cirúrgica';
-  showRes('r_alv',`<strong>Alvarado: ${s}/${max}</strong>\n${r}`);
+  var ck=s<=3?'alv_baixo':s<=6?'alv_mod':'alv_alto';
+  showResWithConduta('r_alv',
+    `<strong>Alvarado: ${s}/${max}</strong>\n${r}`, ck);
 }
 
 function calcRanson() {
@@ -5451,12 +5807,827 @@ function calcRanson() {
   var s = criteria.reduce(function(a,c){ return a + (document.getElementById(c.id)?.checked ? 1 : 0); }, 0);
   var m=s<=2?'<5%':s<=4?'~15%':s<=6?'~40%':'~100%';
   var cor=s<=2?'🟢':s<=4?'🟡':s<=6?'🟠':'🔴';
-  showRes('r_ran',`<strong>${cor} Ranson: ${s}/${max}</strong>\nMortalidade estimada: ${m}${s>=3?'\n⚠️ Pancreatite grave — considerar UTI':''}`);
+  var ck=s<=2?'ranson_leve':s<=4?'ranson_mod':'ranson_grave';
+  showResWithConduta('r_ran',
+    `<strong>${cor} Ranson: ${s}/${max}</strong>\nMortalidade estimada: ${m}${s>=3?'\n⚠️ Pancreatite grave':''}`  , ck);
 }
 
 // ══════════════════════════════════════════════════
-// CONFIG
+// NOVAS CALCULADORAS — CONDUTAS COM MEMÓRIA
 // ══════════════════════════════════════════════════
+
+// ── Chave de armazenamento das condutas personalizadas ──
+var MG_CONDUTAS_KEY = 'mg_calc_condutas_v2';
+
+// ── Textos padrão baseados em evidências (fontes verificadas) ──
+var MG_CONDUTAS_DEFAULT = {
+
+  // ─── DOSES PEDIÁTRICAS ──────────────────────────────────────────────
+  pedo_doses: `📋 Orientações de uso:
+• Dipirona/Paracetamol: usar apenas uma por vez como antitérmico; intercalar com 2h de intervalo se necessário
+• Ibuprofeno: apenas ≥ 6 meses; usar após refeição; evitar em desidratação
+• Adrenalina IM: aplicar na face lateral da coxa; disponibilizar para anafilaxia
+• Salbutamol: sempre com espaçador; reavaliação em 20 min
+⚠️ Confirmar peso real da criança antes de cada dose
+Ref: SBP 2024 · Dr. Caíque Acácio, Medicações Pediatria 2024`,
+
+  // ─── DOSES ADULTO / IOT ──────────────────────────────────────────────
+  adulto_doses: `📋 Orientações de uso (IOT/Emergência):
+• Sequência ISR: Fentanil → Indutor → Bloqueador neuromuscular
+• Etomidato: 1ª escolha no paciente hemodinamicamente estável (não altera PA)
+• Succinilcolina: CI em hipercalemia, DRC, acamados > 48h, queimados, distrofia muscular
+• Rocurônio (alternativa): 1,2 mg/kg; reversão com Sugamadex 16 mg/kg
+• Morfina: CI em IAM inferior, hipotensão, DPOC grave
+• Confirmação de IOT: capnografia + ausculta 5 pontos (epigástrio silencioso)
+Ref: Miller's Anesthesia 9ª ed. · ATLS 10ª ed.`,
+
+  // ─── IMC ─────────────────────────────────────────────────────────────
+  imc_baixo: `🔵 Abaixo do peso — Investigar causa
+• Investigar: doenças consumptivas (neoplasia, TB, HIV), distúrbios alimentares, má absorção (doença celíaca, Crohn), hipertireoidismo
+• Solicitar: hemograma, TSH, albumina, proteínas totais, glicemia, exame parasitológico
+• Suporte nutricional: encaminhar para nutricionista; dieta hipercalórica e hiperproteica
+• Rastrear anemia ferropriva e deficiência de vitaminas (B12, D, folato)
+Ref: WHO 2000 · MS Guia Alimentar para a População Brasileira 2014`,
+
+  imc_normal: `✅ Peso normal (IMC 18,5–24,9) — Manter hábitos saudáveis
+• Estimular atividade física: 150 min/semana de atividade moderada (OMS 2020)
+• Dieta equilibrada: Guia Alimentar Brasileiro — base em alimentos in natura
+• Rastrear HAS, DM e dislipidemia conforme idade e fatores de risco
+• Retorno anual para avaliação de peso e circunferência abdominal
+Ref: OMS 2020 Physical Activity Guidelines · MS Guia Alimentar 2014`,
+
+  imc_sobrepeso: `🟡 Sobrepeso (IMC 25–29,9) — Intervenção precoce
+• Meta: redução de 5–10% do peso corporal melhora PA, glicemia e perfil lipídico
+• Atividade física: ≥ 150 min/semana aeróbico + resistência 2×/semana
+• Dieta: déficit calórico de 500–750 kcal/dia; reduzir ultraprocessados e açúcares
+• Rastrear: HAS (medição de PA), DM (glicemia de jejum), dislipidemia (perfil lipídico)
+• Encaminhar nutricionista e educação física
+Ref: ABESO 2022 · AHA/ACC Obesity Guideline 2022`,
+
+  imc_obesidade: `🔴 Obesidade (IMC ≥ 30) — Tratamento multiprofissional
+• Encaminhar: nutricionista + educação física + psicólogo (TCC para comportamento alimentar)
+• Metas: perda de 5–10% do peso reduz risco cardiovascular; ≥ 10% melhora metabólica
+• Farmacológico (IMC ≥ 30 ou ≥ 27 com comorbidade): Semaglutida 0,25→2 mg/semana SC (GLP-1, ABESO 2022) | Orlistate 120 mg 3×/dia | Bupropiona+Naltrexona
+• Bariátrica: avaliar se IMC ≥ 40 ou ≥ 35 com comorbidade após 2 anos de tratamento clínico
+• Rastrear e tratar: HAS, DM2, SAOS, dislipidemia, esteatose hepática, osteoartrite
+Ref: ABESO 2022 · Mechanick JI et al., Endocr Pract 2020`,
+
+  // ─── GLASGOW ─────────────────────────────────────────────────────────
+  glasgow_leve: `🟢 TCE Leve (GCS 13–15) — Avaliação e vigilância
+• TC crânio: indicar pelos Critérios Canadian CT (GCS < 15 após 2h, fratura crânio suspeita, vômitos ≥ 2×, idade ≥ 65a, amnésia ≥ 30 min, mecanismo perigoso)
+• Se nenhum critério Canadian: alta segura com orientações à família e retorno em 24h
+• Observar por 2–4h no PS antes da alta
+• Orientar retorno se: cefaleia progressiva, vômitos, sonolência excessiva, confusão, convulsão
+Ref: Canadian CT Head Rule — Stiell IG, Lancet 2001`,
+
+  glasgow_mod: `🟡 TCE Moderado (GCS 9–12) — Internação + TC urgente
+• TC crânio imediata (sem contraste)
+• Internação hospitalar obrigatória para monitorização neurológica
+• Avaliar neurocirurgia se lesão expansiva (hematoma epidural, subdural, contusão)
+• Monitorar: nível de consciência (GCS horário), pupilas, PA, SpO2
+• Manter PA sistólica ≥ 110 mmHg e SpO2 ≥ 94%
+• Cabeça elevada 30°; não hidratar com SG (piora edema cerebral)
+Ref: BTF TCE Grave 4ª ed. · ATLS 10ª ed.`,
+
+  glasgow_grave: `🔴 TCE Grave (GCS ≤ 8) — IOT + UTI + Neurocirurgia urgente
+• IOT imediata para proteção de via aérea (GCS ≤ 8 = incapaz de proteger VA)
+• TC crânio urgente pós-IOT
+• Neurocirurgia urgente se: hematoma epidural/subdural com desvio, hipertensão intracraniana
+• Metas neuroprotectoras: PAS ≥ 110 mmHg | SpO2 ≥ 94% | glicemia 140–180 | TAX < 37,5
+• Manitol 0,25–1 g/kg EV se sinais de herniação (midríase unilateral + Cushing)
+• Cabeça elevada 30°; pCO2 alvo 35–40 mmHg (não hiperventilar de rotina)
+• Profilaxia anticonvulsivante: fenitoína 15 mg/kg EV nas primeiras 7 dias (BTF)
+Ref: BTF TCE Grave 4ª ed. 2016 · ATLS 10ª ed.`,
+
+  // ─── CURB-65 ─────────────────────────────────────────────────────────
+  curb_baixo: `🟢 CURB-65 0–1 — Pneumonia leve — Tratamento ambulatorial
+• Amoxicilina 1 g VO 8/8h × 5–7 dias (1ª linha, pneumococo)
+• Alternativa atípicos: Azitromicina 500 mg/dia × 5d ou Levofloxacino 500 mg/dia × 5d
+• Retorno imediato se: SpO2 < 94%, FR > 30, incapacidade de ingerir VO, piora da febre
+• Internação independente do score se: SpO2 < 92%, sem suporte domiciliar, comorbidade descompensada
+Ref: IDSA/ATS CAP Guidelines 2019 · SBPT 2018`,
+
+  curb_mod: `🟡 CURB-65 2 — Pneumonia moderada — Considerar internação (avaliar individualmente)
+• Internação se: SpO2 < 94%, piora clínica, impossibilidade de VO, idoso frágil
+• ATB: Ceftriaxona 1–2 g EV 24/24h + Azitromicina 500 mg EV/VO (cobertura atípicos)
+• Alternativa: Levofloxacino 500 mg EV 24/24h (monoterapia — cobre atípicos e pneumococo)
+• Oxigenioterapia se SpO2 < 94%; alvo 94–98%
+• Reavaliação clínica em 48–72h; deescalada ATB conforme cultura e resposta
+Ref: IDSA/ATS 2019 · SBPT 2018`,
+
+  curb_alto: `🔴 CURB-65 ≥ 3 — Pneumonia grave — Internação (UTI se ≥ 5)
+• UTI imediata se CURB ≥ 5, instabilidade hemodinâmica, necessidade de IOT
+• ATB EV em até 1h: Ceftriaxona 2 g EV + Azitromicina 500 mg EV (ou Levofloxacino EV)
+• Pseudomonas (FR: DPOC grave, bronquiectasia, ATB recente): Pip/Tazo 4,5 g 6/6h ou Cefepime 2 g 8/8h
+• Corticoide: Dexametasona 6 mg/dia × 7d se PaO2/FiO2 < 250 (baseado em dados COVID + CAP grave)
+• Suporte: O2, hidratação, DVA se choque séptico associado (noradrenalina)
+Ref: IDSA/ATS 2019 · SBPT 2018 · SSC 2021`,
+
+  // ─── WELLS TVP ───────────────────────────────────────────────────────
+  wells_baixo: `🟢 Wells TVP baixo (≤ 1) — Probabilidade baixa
+• D-dímero (ELISA altamente sensível): se negativo → EXCLUI TVP com segurança
+• D-dímero negativo: alta sem anticoagulação; investigar outras causas (celulite, rotura muscular, tromboflebite superficial)
+• D-dímero positivo: solicitar USG compressão venosa (Duplex Doppler)
+• Ajustar D-dímero pela idade > 50 anos: valor-limite = idade × 10 ng/mL (Righini 2014)
+Ref: Wells PS et al., Lancet 1997 · van Es N et al., Ann Intern Med 2016`,
+
+  wells_mod: `🟡 Wells TVP moderado (2) — Probabilidade intermediária
+• USG com compressão venosa (Duplex Doppler): exame de escolha
+• D-dímero: pode ser usado antes do USG; se negativo, exclui TVP
+• USG positivo: anticoagulação plena imediata
+• USG negativo + D-dímero negativo: sem anticoagulação; reavaliar em 5–7 dias se dúvida
+• Reavaliar em 5–7 dias com USG proximal se primeiro exame negativo e suspeita persiste
+Ref: Wells PS et al., Lancet 1997 · ISTH 2021`,
+
+  wells_alto: `🔴 Wells TVP alto (≥ 3) — Anticoagulação imediata
+• Anticoagulação plena imediatamente (não aguardar resultado do USG)
+• 1ª escolha: Rivaroxabana 15 mg 12/12h × 21 dias → 20 mg/dia × ≥ 3 meses (EINSTEIN-DVT)
+• Alternativa: Apixabana 10 mg 12/12h × 7 dias → 5 mg 12/12h × ≥ 3 meses
+• LMWH + varfarina se: DRC grave (ClCr < 30), gestação, prótese valvar
+• Confirmar com USG Doppler; iniciar tratamento empiricamente se alta probabilidade
+• Investigar trombofilia e neoplasia oculta se: TVP sem FR óbvio, recorrente ou bilateral
+Ref: ISTH 2021 · ESC VTE Guidelines 2019 · EINSTEIN-DVT (NEJM 2010)`,
+
+  // ─── ALVARADO ────────────────────────────────────────────────────────
+  alv_baixo: `🟢 Alvarado ≤ 3 — Baixo risco de apendicite
+• Probabilidade de apendicite < 10%; causa alternativa provável
+• Alta com sintomáticos e retorno em 12–24h se piora
+• Considerar: observação 4–6h com reavaliação clínica e laboratorial
+• Investigar diagnóstico diferencial: adenomesenterite, DIP, cisto ovariano, ITU, doença de Crohn
+Ref: Alvarado A, Ann Emerg Med 1986 · Ohle R et al., Ann Emerg Med 2011`,
+
+  alv_mod: `🟡 Alvarado 4–6 — Risco moderado — Investigação adicional
+• TC abdome e pelve com contraste: exame padrão ouro (sens. 94%, espec. 95%)
+• USG abdominal: 1ª opção em crianças e gestantes (evitar radiação)
+• Internação para observação e reavaliação seriada a cada 6h (cirurgião)
+• Dieta zero + hidratação EV + analgesia (não contraindica o diagnóstico — Cochrane 2011)
+• Leucocitose progressiva ou piora clínica → cirurgia
+Ref: Ohle R et al., Ann Emerg Med 2011 · Gorter RR et al., J Pediatr Surg 2016`,
+
+  alv_alto: `🔴 Alvarado ≥ 7 — Alto risco — Avaliação cirúrgica urgente
+• Cirurgião imediato; considerar laparotomia/laparoscopia sem TC se clínica inequívoca
+• ATB profilático/terapêutico pré-operatório: Cefazolina 2 g EV + Metronidazol 500 mg EV
+• Se perfurada: Piperacilina/Tazobactam 4,5 g EV 6/6h por 3–5 dias pós-operatórios
+• Apendicectomia laparoscópica: 1ª escolha (menor complicação, menor tempo de internação)
+• Se peritonite difusa: laparotomia mediana
+Ref: WSES 2020 Apendicite · SAGES Guidelines · Cochrane 2019`,
+
+  // ─── RANSON ──────────────────────────────────────────────────────────
+  ranson_leve: `🟢 Ranson 0–2 — Pancreatite leve (mortalidade < 5%)
+• Internação para observação; maioria resolve em 3–5 dias
+• Dieta: Jejum NÃO obrigatório — dieta oral leve (baixo teor de gordura) precocemente se tolerado (ESPEN 2020)
+• Hidratação: Ringer Lactato 250–500 mL/h nas primeiras 12–24h (melhor que SF 0,9% — reduz acidose)
+• Analgesia: dipirona/cetoprofeno EV; tramadol se refratário; morfina é segura (contra-indicação histórica sem evidência atual)
+• Investigar e tratar causa: colelitíase (USG), álcool, hipertrigliceridemia
+Ref: IAP/APA 2013 · ESPEN 2020 · AGA 2022`,
+
+  ranson_mod: `🟡 Ranson 3–4 — Pancreatite moderadamente grave (mortalidade ~15%)
+• Internação hospitalar + monitorização de função renal, hematócrito e eletrólitos a cada 12h
+• Hidratação agressiva: Ringer Lactato 250–500 mL/h, meta diurese > 0,5 mL/kg/h
+• Nutrição enteral precoce (≤ 24–48h): sonda nasoenteral via jejunal se não tolerando VO — superior à NP (reduz infecção, mortalidade)
+• Antibiótico: NÃO profilático; usar apenas se infecção confirmada (IMACC, fístula)
+• TC abdome com contraste (CECT) em 48–72h se deterioração: avaliar necrose
+• Coleção líquida: drenagem apenas se infectada ou sintomática
+Ref: IAP/APA 2013 · AGA 2022 · ESPEN 2020`,
+
+  ranson_grave: `🔴 Ranson ≥ 5 — Pancreatite grave (mortalidade 40–100%)
+• UTI imediata + monitorização multiparâmetro contínua
+• Hidratação agressiva: 250–500 mL/h Ringer Lactato; cuidado com sobrecarga em idosos/cardiopatas
+• Nutrição enteral precoce em 24–48h (NP apenas se enteral inviável)
+• TC com contraste (CECT): avaliar necrose e coleções (índice de Balthazar)
+• Necrose infectada: PAAF guiada e cultura; ATB conforme resultado (Meropenem ou Imipenem)
+• Colangiopancreatografia (CPRE): em até 72h se colangite associada ou obstrução biliar persistente
+• Colecistectomia: após resolução, durante a mesma internação se calculosa leve
+Ref: IAP/APA 2013 · AGA 2022 · Tenner S et al., Am J Gastroenterol 2013`,
+
+  // ─── TFG ─────────────────────────────────────────────────────────────
+  tfg_g1: `✅ DRC G1 (TFG ≥ 90) — Função renal preservada com marcador de dano renal
+• Tratar causa base: controle rigoroso de PA (alvo < 130/80) e glicemia (HbA1c < 7%)
+• IECA ou BRA se proteinúria ≥ 300 mg/g — efeito nefroprotetor independente de PA
+• iSGLT-2 (dapagliflozina 10 mg ou empagliflozina 10 mg): indicado se DM2 + DRC com RAC > 200 mg/g — reduz progressão renal (DAPA-CKD, EMPA-Kidney; KDIGO 2024)
+• Evitar AINEs, contraste não iônico sem hidratação, aminoglicosídeos
+• Monitorar RAC urinária + TFG ao menos 1×/ano
+• Vacinar contra HBV se não imune
+Ref: KDIGO 2024 CKD Guideline · MS PCDT DRC 2022 · SBD 2025`,
+
+  tfg_g2: `⚠️ DRC G2 (TFG 60–89) — Redução leve com marcador de dano renal
+• Todas as medidas do G1 +
+• Encaminhar nefrologia se: RAC > 300 mg/g, queda ≥ 25% TFG em 12 meses ou causa não elucidada
+• Metformina: manter com dose habitual (TFG ≥ 45); ajustar para metade (TFG 30–44)
+• iSGLT-2: indicado se DM2 e RAC ≥ 200 mg/g; TFG mín 25 (dapa) ou 20 (empa) — KDIGO 2024
+• Monitorar K⁺, HCO₃⁻, Hb, PA e proteinúria a cada 6–12 meses
+Ref: KDIGO 2024 · MS PCDT DRC 2022`,
+
+  tfg_g3a: `⚠️ DRC G3a (TFG 45–59) — Redução leve a moderada
+• Manter IECA/BRA (interromper temporariamente apenas em desidratação ou AKI)
+• iSGLT-2: manter até TFG ≥ 25–20 conforme agente (efeito renitente = benefício persiste mesmo se TFG cair)
+• Metformina: meia dose (500 mg/dia); suspender se TFG < 30
+• Monitorar: K⁺ e HCO₃⁻ (acidose tubular), Hb (anemia — alvo 10–12 g/dL), PTH, fósforo, Ca
+• Anemia: repor ferro VO primeiro (sulfato ferroso 200 mg Fe/dia); EPO se Hb < 10 após reposição
+• Restringir proteína: 0,8 g/kg/dia (não hiperproteico)
+• Considerar encaminhamento nefrologia
+Ref: KDIGO 2024 · MS Guia Rápido DRC · NICE CKD 2021`,
+
+  tfg_g3b: `🔴 DRC G3b (TFG 30–44) — Redução moderada a grave
+• Encaminhar nefrologia — acompanhamento conjunto APS + especialista
+• Suspender metformina se TFG < 30; ajustar todos os fármacos de excreção renal
+• Anemia: ferro EV se não resposta VO em 3 meses; EPO se Hb < 10 g/dL persistente
+• Distúrbio mineral: monitorar PTH, fósforo e Ca a cada 6 meses; quelantes de fósforo se P > 4,5
+• Acidose metabólica: bicarbonato VO se HCO₃⁻ < 22 (alvo 22–26)
+• PA alvo < 130/80; dieta hipossódica < 2 g Na/dia
+• Preparar para educação pré-diálise (opções de TRS)
+Ref: KDIGO 2024 · MS PCDT DRC 2022`,
+
+  tfg_g4: `🔴 DRC G4 (TFG 15–29) — Redução grave — Preparo para TRS
+• Nefrologia obrigatória — preparar acesso vascular (FAV) ou diálise peritoneal com antecedência mínima de 6 meses
+• Avaliar transplante renal: encaminhar para avaliação se candidato (idade, comorbidades)
+• Suspender: metformina, AINEs, contraste sem hidratação, fármacos nefrotóxicos
+• EPO + ferro EV: manter Hb 10–12 g/dL; evitar > 13 g/dL (risco cardiovascular)
+• Hipercalemia: restringir K na dieta; resinas se K⁺ > 5,5; considerar diálise
+• Acidose: bicarbonato VO — alvo HCO₃⁻ > 22 mEq/L
+• Vacinar: HBV (3 doses), pneumocócica, influenza (anual)
+Ref: KDIGO 2024 · MS PCDT DRC 2022`,
+
+  tfg_g5: `🔴 DRC G5 (TFG < 15) — Falência renal — TRS
+• Iniciar TRS: hemodiálise, diálise peritoneal ou transplante renal (conforme perfil do paciente)
+• Indicações de diálise de urgência — AEIOU: Acidose (pH < 7,1), Eletrólitos (K⁺ > 6,5 refratário), Intoxicação, Overload (sobrecarga hídrica refratária), Uremia (encefalopatia, pericardite, sangramento)
+• UTI se instabilidade hemodinâmica, acidose grave ou hipercalemia com alterações no ECG
+Ref: KDIGO 2024 · MS PCDT DRC 2022`,
+
+  // ─── GASOMETRIA ───────────────────────────────────────────────────────
+  gaso_acid_met: `🔴 Acidose Metabólica — Conduta por etiologia:
+AG ALTO (MUDPILES): identificar e tratar causa
+• CAD: insulina regular EV BIC 0,1 UI/kg/h + SF 0,9% 1 L/h na 1ª hora + KCl se K⁺ < 5,5
+• Lactato: ressuscitação volêmica + tratar hipoperfusão (meta clearance lactato > 10%/2h)
+• Uremia: diálise urgente se pH < 7,1 refratário
+• Salicilatos/tóxicos: carvão ativado + alcalinização urinária + diálise
+AG NORMAL (HARDUP): diarreia/RTA — SF 0,9% EV + HCO₃⁻ VO se leve
+Bicarbonato EV: apenas pH < 7,1 após tratamento da causa — 1 mEq/kg EV lento
+NÃO usar rotineiramente na CAD (piora hipocalemia e alcalose de rebote)
+Ref: Kellum JA, Crit Care Med 2007 · KDIGO AKI 2012 · ADA/EASD CAD 2022`,
+
+  gaso_acid_resp: `🔴 Acidose Respiratória — Suporte ventilatório:
+AGUDA: VNI (CPAP/BiPAP) se tolerada → DPOC, EAP, SAOS
+IOT se: falha de VNI, GCS ≤ 8, FR > 35 ou apneia, fadiga muscular intensa
+DPOC: O2 controlado alvo SpO2 88–92% (evitar hiperóxia → ↑pCO2)
+CRÔNICA COMPENSADA: tratar exacerbação — broncodilatadores, corticoide, ATB se purulência
+Meta ventilatória: pCO2 gradual (não normalizar abruptamente na crônica → alcalose metabólica)
+Ref: GOLD 2024 · GINA 2024 · ATS/ERS NIV Guidelines`,
+
+  gaso_alc_met: `🔵 Alcalose Metabólica — Tratar causa:
+Vômitos/SNG: SF 0,9% EV + KCl (repor Cl⁻ e K⁺) — "sensível ao Cl⁻"
+Diuréticos: suspender ou reduzir; repor K⁺; acetazolamida 250–500 mg VO/EV se refratária
+Hiperaldosteronismo: espironolactona 25–100 mg/dia
+Alcalose grave (pH > 7,6): raramente precisa de HCl EV — tratar causa
+Ref: Adrogue & Madias, NEJM 1998 · Rose & Post, Clinical Physiology 5ª ed`,
+
+  gaso_alc_resp: `🔵 Alcalose Respiratória — Tratar causa:
+Sepse precoce: hemoculturas + ATB empírico em 1h (SSC 2021)
+TEP: Wells + D-dímero/AngioTC → anticoagulação
+Ansiedade/dor: ansiolítico/analgesia; respiração diafragmática
+Febre: antitérmico + investigar foco
+VM: reduzir FR ou volume corrente (alvo pCO2 35–45)
+Ref: Singer M et al., JAMA 2016 · SSC 2021`,
+
+  // ─── CHA2DS2-VASc / FA ────────────────────────────────────────────────
+  cha2_0: `✅ CHA₂DS₂-VA 0 — Risco muito baixo de AVC
+• Anticoagulação NÃO recomendada (ESC 2024 / SBC 2025)
+• AAS NÃO indicado para prevenção de AVC em FA (sem benefício líquido)
+• Controlar fatores de risco modificáveis: PA, glicemia, peso, sedentarismo
+• Reavaliar anualmente ou se nova comorbidade
+Ref: ESC FA 2024 (Camm et al.) · Diretriz SBC FA 2025`,
+
+  cha2_1: `⚠️ CHA₂DS₂-VA 1 — Decisão individualizada
+• Anticoagulação: considerar individualmente (benefício marginal; discutir riscos com paciente)
+• Se pontuação por AVC/AIT prévio ou IC: anticoagular (maior peso clínico)
+• DOACs preferidos sobre varfarina em FA não valvar (ESC 2024, Classe I)
+• Calcular HAS-BLED: não contraindica se ≥ 3, mas corrigir FR modificáveis
+Ref: ESC FA 2024 · SBC FA 2025`,
+
+  cha2_2: `🔴 CHA₂DS₂-VA ≥ 2 — Anticoagulação INDICADA (Classe I — ESC 2024 / SBC 2025)
+• 1ª escolha: DOAC (FA não valvar)
+  - Apixabana 5 mg 12/12h (ou 2,5 mg 12/12h se ≥ 2 critérios: ≥ 80 anos, peso ≤ 60 kg, Cr ≥ 1,5)
+  - Rivaroxabana 20 mg/dia com jantar (15 mg se ClCr 15–50)
+  - Dabigatrana 150 mg 12/12h (110 mg se ≥ 80 anos ou risco hemorrágico alto)
+  - Edoxabana 60 mg/dia (30 mg se ClCr 15–50, peso ≤ 60 kg ou uso de P-gp inibidor)
+• Varfarina (INR 2–3): apenas FA com estenose mitral reumática moderada/grave ou prótese valvar mecânica
+• AAS NÃO substituir anticoagulante (sem benefício e maior sangramento)
+• HAS-BLED ≥ 3: corrigir FR modificáveis (PA, INR lábil, AINEs, alcoolismo) — NÃO contraindica anticoagulação
+• Monitorar função renal + TGO/TGP anualmente (ou semestralmente se ClCr < 60 ou HAS-BLED ≥ 3)
+Ref: ESC FA 2024 · SBC FA 2025 · Hindricks et al., Eur Heart J 2021`,
+
+  // ─── HAS-BLED ─────────────────────────────────────────────────────────
+  hasbled_baixo: `✅ HAS-BLED 0–2 — Risco baixo de sangramento maior (~1–2%/ano)
+• Anticoagulação pode ser iniciada com segurança se indicada pelo CHA₂DS₂-VA
+• Monitorar PA, função renal/hepática e hemoglobina a cada 6–12 meses
+• Orientar sobre sinais de sangramento: fezes escuras, hematúria, hematomas extensos
+Ref: Pisters R et al., Chest 2010 · ESC FA 2024`,
+
+  hasbled_alto: `⚠️ HAS-BLED ≥ 3 — Risco elevado de sangramento (~3–4%/ano)
+• NÃO contraindica anticoagulação se CHA₂DS₂-VA ≥ 2 — benefício isquêmico geralmente supera risco hemorrágico
+• Ação obrigatória sobre fatores MODIFICÁVEIS:
+  - PA não controlada: otimizar anti-hipertensivo (alvo < 130/80)
+  - AINEs/antiagregantes desnecessários: suspender
+  - INR lábil (se varfarina): considerar troca por DOAC
+  - Alcoolismo: encaminhar para tratamento
+  - Anemia/coagulopatia: investigar e corrigir
+• Preferir DOAC sobre varfarina (menor sangramento intracraniano)
+• Monitorar Hb, função renal e função hepática a cada 3–6 meses
+• Reavaliação mais frequente: a cada 6 meses
+Ref: ESC FA 2024 · Lip GYH, Eur Heart J 2023`,
+
+  // ─── ÂNION GAP ────────────────────────────────────────────────────────
+  ag_normal: `✅ Ânion Gap Normal (8–12 mEq/L) — Acidose hiperclorêmica
+Causas HARDUP: Hiperalimentação, Acetazolamida, RTA, Diarreia, Ureterossigmoidostomia, Pâncreas (fístula)
+• Diarreia (causa + comum): SF 0,9% EV + SRO se tolerando VO; repor HCO₃⁻ se pH < 7,2
+• RTA: HCO₃⁻ VO 1–2 mEq/kg/dia (bicarbonato de sódio) + tratar causa de base
+• Hiperalimentação: ajustar fórmula nutricional (reduzir Cl⁻, aumentar acetato)
+Ref: Emmett M & Narins RG, Medicine 1977 · Rose & Post 5ª ed`,
+
+  ag_alto: `🔴 Ânion Gap Aumentado (> 12 mEq/L corrigido para albumina)
+Causas MUDPILES: Metanol, Uremia, DKA, Paracetamol, Isoniazida/Ferro, Lactato, Etanol/Etilenoglicol, Salicilatos
+• CAD (mais comum): insulina regular 0,1 UI/kg/h EV BIC + SF 0,9% 1 L/h + KCl (se K⁺ ≥ 3,5)
+• Lactato ≥ 4: ressuscitar com 30 mL/kg cristaloide + noradrenalina se PAM < 65; clearance lactato > 10%/2h como meta
+• Uremia: diálise de urgência se pH < 7,1 refratário após tratamento
+• Metanol/Etilenoglicol: fomepizol EV + considerar diálise; NÃO aguardar resultado toxicológico
+• Salicilatos: alcalinização urinária (NaHCO₃ EV alvo pH urina 7,5–8) + diálise se grave
+Bicarbonato EV: apenas pH < 7,1 após tratar causa — 1 mEq/kg EV lento
+Ref: Emmett & Narins 1977 · Figge et al., JAMA 1992 · ADA CAD 2022`,
+
+  // ─── FENa ─────────────────────────────────────────────────────────────
+  fena_prerenal: `✅ FENa < 1% — IRA Pré-Renal
+• Hidratação: SF 0,9% ou Ringer Lactato 250–500 mL bolus → reavaliar diurese e Cr em 2–4h
+• Suspender imediatamente: AINEs, IECA/BRA (especialmente se TFG caindo), contraste sem pré-hidratação
+• Meta: diurese ≥ 0,5 mL/kg/h
+• Se sem resposta em 4–6h: suspeitar NTA isquêmica instalada → não forçar diurese
+• Monitorar: Cr, ureia, K⁺, balanço hídrico e ECG (hipercalemia)
+• ⚠️ FENa pode ser < 1% na NTA por contraste ou mioglobinúria — correlacionar com sedimento urinário
+Ref: Espinel CH, JAMA 1976 · KDIGO AKI 2012`,
+
+  fena_renal: `🔴 FENa > 2% — IRA Renal/Intrínseca (NTA provável)
+• Investigar causa: hipotensão prévia (isquemia), nefrotóxicos (aminoglicosídeos, contraste, vancomicina, anfotericina), sepse, rabdomiólise
+• Suspender todo nefrotóxico; revisar doses de todos fármacos de excreção renal
+• Hidratação cuidadosa: SF 0,9% para manter volemia adequada — NÃO forçar diurese (furosemida não protege rim na NTA)
+• Monitorar K⁺: hipercalemia é emergência — gluconato Ca + insulina/glicose + salbutamol nebulizado
+• Dieta: restrição de K⁺ e fósforo; proteína 0,8–1 g/kg/dia
+• Diálise urgente (AEIOU): Acidose pH < 7,1, Eletrólitos K⁺ > 6,5 refratário, Intoxicação, Overload, Uremia sintomática
+• Reavaliar diariamente; Cr costuma pico em 3–5 dias e melhora em 1–2 semanas na NTA
+Ref: KDIGO AKI 2012 · Kellum JA, Crit Care Med 2012`,
+
+  // ─── OSMOLALIDADE ────────────────────────────────────────────────────
+  osm_hipo: `🔵 Hipoosmolar (< 275 mOsm/kg) — Hiponatremia hipotônica
+• Definir volemia (hipovolêmica / euvolêmica / hipervolêmica) — orienta tratamento
+• Hipovolêmica: SF 0,9% 250 mL bolus + tratar causa (vômitos, diarreia, diuréticos)
+• Euvolêmica (SIADH mais comum): restrição hídrica < 800 mL/dia; tolvaptana se grave/refratária
+• Hipervolêmica (ICC, cirrose, SN): restrição hídrica + tratar doença de base; furosemida
+• Correção máxima SEGURA: 8–12 mEq/L em 24h (mais rápido → mielinólise osmótica central)
+• Sintomática grave (convulsão, coma): NaCl 3% 1–2 mL/kg/h — alvo ↑5 mEq/L na 1ª hora
+Ref: Spasovski G et al., Eur J Endocrinol 2014 · Sterns RH, UpToDate 2024`,
+
+  osm_hiper: `🔴 Hiperosmolar (> 295 mOsm/kg)
+• Hiperglicemia: insulina regular + hidratação SF 0,9% (HHS: 1–1,5 L/h na 1ª hora) + KCl
+• Desidratação/DI: repor água livre com SG 5% ou água VO; calcular déficit e corrigir em 48h (máx ↓ 10 mEq/L Na/dia)
+• DI central: desmopressina (DDAVP) nasal/SC/oral + tratar causa
+• Monitorar Na⁺ a cada 2–4h durante correção
+• Gap osmolar > 10: investigar metanol, etilenoglicol, etanol, manitol → CIATox 0800-722-6001
+Ref: Adrogue & Madias, NEJM 2000 · Weisberg LS, Am J Med 1989`,
+
+  // ─── DÉFICIT ÁGUA LIVRE ───────────────────────────────────────────────
+  dal_conduta: `💦 Hipernatremia — Déficit de Água Livre
+• Repor com: SG 5% EV ou água VO (se consciente e tolerando)
+• Correção MÁXIMA segura: 10 mEq/L de Na⁺ em 24h (mais rápido → edema cerebral)
+• Administrar metade do déficit nas primeiras 12–24h; restante nas próximas 24–48h
+• Monitorar Na⁺ a cada 4–6h; ajustar velocidade conforme resposta
+• Investigar causa:
+  - DI central: desmopressina (DDAVP) SC/nasal/oral
+  - DI nefrogênica: tratar causa (lítio, hipercalcemia, hipocalemia) + hidratação
+  - Perdas extras-renais: diarreia, suor excessivo, respiração — repor água livre
+  - Hipertônico administrado: suspender; repor água livre
+• Idosos: mais suscetíveis à correção rápida — monitorar nível de consciência
+Ref: Adrogue & Madias, NEJM 2000 · Sterns RH, UpToDate 2024`,
+
+  // ─── qSOFA / SOFA ────────────────────────────────────────────────────
+  qsofa_neg: `✅ qSOFA < 2 — Baixa suspeita de disfunção orgânica por sepse
+• qSOFA tem baixa sensibilidade como triagem isolada (SSC 2021 recomenda contra uso isolado)
+• Se suspeita clínica persiste: avaliar SOFA completo + lactato + culturas
+• Monitorar e reavaliação em 1–2h se piora
+Ref: SSC 2021 · Singer M et al., JAMA 2016 (Sepsis-3)`,
+
+  qsofa_pos: `🔴 qSOFA ≥ 2 — Marcador de pior prognóstico — avaliar SOFA + iniciar bundle
+• Coletar: hemoculturas (2 pares antes do ATB), lactato, gasometria, hemograma, PCR, creatinina, bilirrubinas
+• Iniciar ATB empírico de amplo espectro em até 1 hora da suspeita
+• SF 0,9% ou Ringer Lactato 30 mL/kg EV em 3h se hipotensão ou lactato ≥ 4
+• Noradrenalina se PAM < 65 após hidratação adequada (alvo PAM ≥ 65)
+Ref: SSC 2021 · Evans L et al., Crit Care Med 2021`,
+
+  sofa_baixo: `✅ SOFA 0–1 — Disfunção orgânica mínima
+• Monitorar; tratar infecção de base; reavaliação clínica seriada
+• Não preenche critério para sepse se elevação < 2 pontos do basal
+Ref: Singer M et al., JAMA 2016 (Sepsis-3) · SSC 2021`,
+
+  sofa_moderado: `⚠️ SOFA 2–6 — SEPSE CONFIRMADA (elevação ≥ 2 pontos)
+BUNDLE 1 HORA (SSC 2021 — Evans L et al., Crit Care Med 2021):
+1. Medir lactato (se > 2 repetir em 2h; se > 4 → UTI)
+2. Hemoculturas × 2 pares ANTES do ATB (não atrasar > 45 min)
+3. ATB empírico amplo espectro — iniciar em até 1 hora:
+   • Sem foco: Piperacilina/Tazobactam 4,5 g EV 6/6h ou Meropenem 1 g EV 8/8h
+   • PNM: Ceftriaxona 2 g + Azitromicina 500 mg EV
+   • ITU grave: Ceftriaxona 1–2 g EV 24/24h
+   • Foco abdominal: Pip/Tazo ou Mero + Metronidazol
+4. Cristaloide 30 mL/kg EV em 3h se hipotensão ou lactato ≥ 4
+5. Noradrenalina se PAM < 65 (após volume)
+Meta: PAM ≥ 65, diurese ≥ 0,5 mL/kg/h, clearance lactato > 10%/2h
+Ref: Evans L et al., Crit Care Med 2021 · SSC 2021`,
+
+  sofa_grave: `🔴 SOFA ≥ 7 — SEPSE GRAVE / CHOQUE SÉPTICO
+Critérios de choque séptico: vasopressor para PAM ≥ 65 + lactato > 2 após volume (mortalidade ~40%)
+• UTI imediata + monitorização contínua
+• Noradrenalina: droga vasoativa de 1ª escolha; iniciar se PAM < 65 após 30 mL/kg volume
+• Vasopressina 0,03 UI/min: adicionar se noradrenalina > 0,25 mcg/kg/min (poupa noradrenalina)
+• Hidrocortisona 200 mg/dia EV (BIC ou 50 mg 6/6h): se choque refratário (noradrenalina > 0,25 mcg/kg/min após 24h)
+• Culturas + ATB de amplo espectro em 1h (deescalada em 48–72h conforme culturas)
+• Controle glicêmico: alvo 140–180 mg/dL (insulina BIC)
+• Suporte ventilatório se P/F < 200 (SDRA) — volume corrente 6 mL/kg peso predito
+Ref: Evans L et al., Crit Care Med 2021 · SSC 2021 · SCCM 2024`,
+
+  // ─── ÍNDICE DE CHOQUE ────────────────────────────────────────────────
+  ic_normal: `✅ Índice de Choque 0,5–0,9 — Estável hemodinamicamente
+• Normal: 0,5–0,7 (adulto saudável em repouso)
+• Monitorar sinais vitais; buscar causa de taquicardia ou hipotensão se no limite superior
+• Não indica intervenção emergencial isoladamente
+Ref: Allgöwer & Burri, Dtsch Med Wochenschr 1967 · Medway Review 2024`,
+
+  ic_leve: `⚠️ Índice de Choque 0,9–1,0 — Comprometimento hemodinâmico leve
+• Avaliar volemia clinicamente: pele, TEC, JVD, ausculta pulmonar
+• Prova volêmica: SF 0,9% ou Ringer Lactato 250–500 mL EV → reavaliar em 15 min
+• Investigar causa: hemorragia oculta (FAST/USG abdome), sepse precoce, TEP, IC descompensada
+• Dosar lactato (se disponível) — meta < 2 mmol/L
+• Monitorar PA e FC continuamente
+Ref: ATLS 10ª ed · Birkhahn RH et al., J Trauma 2005`,
+
+  ic_moderado: `⚠️ Índice de Choque 1,0–1,4 — Choque compensado — Alerta hemodinâmico
+• Acesso venoso periférico calibroso ×2 + monitor contínuo
+• SF 0,9% ou Ringer Lactato 30 mL/kg EV → guiar por resposta (diurese, PA, FC, lactato)
+• Investigar causa urgente: FAST se trauma, ECG se cardíaco, D-dímero/AngioTC se TEP, culturas se sepse
+• Hemograma + lactato + gasometria — ativar protocolo de transfusão maciça se trauma
+• Considerar noradrenalina se PAM < 65 após volume (via periférica aceitável no início — SSC 2021)
+Ref: ATLS 10ª ed · SSC 2021 · Chan KS et al., Ann Acad Med 2023`,
+
+  ic_grave: `🔴 Índice de Choque ≥ 1,4 — Choque grave / Iminência de colapso
+• Ativar time de emergência — UTI imediata
+• Hemorragia (trauma): ácido tranexâmico 1 g EV em 10 min (< 3h do trauma); protocolo transfusão maciça 1:1:1 (CH:PFC:plaquetas); controle cirúrgico do foco (damage control)
+• Séptico: noradrenalina + bundle SSC 2021 em 1h
+• Cardiogênico: NÃO volume agressivo → dobutamina + IABP/suporte mecânico
+• TEP maciço: alteplase 100 mg EV em 2h (se sem contraindicação)
+• Monitorar: gasometria (lactato), ECG, diurese, TEC
+Ref: ATLS 10ª ed · SSC 2021 · ACEP Hemorrhagic Shock Guidelines 2023`,
+
+  // ─── REPOSIÇÃO Na ────────────────────────────────────────────────────
+  repna_deficit: `💧 Reposição de Sódio — Hiponatremia
+• Correção MÁXIMA segura: 8–12 mEq/L em 24h (Spasovski et al., Eur J Endocrinol 2014)
+• Hiponatremia sintomática grave (convulsão/coma/herniação cerebral): NaCl 3% 1–2 mL/kg/h EV — alvo ↑ 5 mEq/L na 1ª hora → monitorar a cada 2h
+• Hiponatremia leve-moderada (assintomática ou sintomas leves):
+  - Hipovolêmica: SF 0,9% + tratar causa
+  - SIADH (euvolêmica): restrição hídrica < 800 mL/dia ± furosemida; tolvaptana 15 mg/dia se refratária
+  - Hipervolêmica (IC/cirrose): restrição hídrica + diurético + tratar causa base
+• ⚠️ Correção muito rápida (> 12 mEq/24h) → Síndrome de Desmielinização Osmótica Central (irreversível)
+• Se Na⁺ subiu demais: SF hipotônico ou desmopressina para desacelerar correção
+Ref: Spasovski G et al., Eur J Endocrinol 2014 · Sterns RH, UpToDate 2024 · Adrogue & Madias, NEJM 2000`,
+
+  repna_excesso: `🔴 Sódio acima do alvo — Hipernatremia
+• Repor água livre: SG 5% EV ou água VO (se consciente)
+• Correção máxima: 10 mEq/L Na⁺ em 24h (mais rápido → edema cerebral)
+• Monitorar Na⁺ a cada 4–6h durante reposição
+• Investigar e tratar causa (ver calculadora Déficit de Água Livre)
+Ref: Adrogue & Madias, NEJM 2000`,
+
+  // ─── REPOSIÇÃO K ─────────────────────────────────────────────────────
+  repk_leve: `⚠️ Hipocalemia leve (3,0–3,5 mEq/L) — Reposição oral preferencial
+• KCl 6% xarope VO: Slon-K 600 mg (= 8 mEq K⁺) — até 40–80 mEq/dia em doses divididas
+• Alimentos ricos em K⁺: banana (~9 mEq/unid), laranja, feijão, espinafre, batata
+• Investigar e tratar causa: diuréticos, vômitos, diarreia, alcalose metabólica, magnésio baixo
+• ⚠️ Corrigir Mg²⁺ antes: hipomagnesemia impede reposição efetiva de K⁺
+• Monitorar K⁺ em 24–48h; ECG se sintomático (fraqueza muscular, palpitações)
+Ref: Weiner ID & Wingo CS, JASN 1997 · Sterns RH, UpToDate 2024`,
+
+  repk_grave: `🔴 Hipocalemia grave (< 3,0 mEq/L) — Reposição endovenosa
+• KCl 10%: diluir em SF 0,9% — concentração máxima periférica 40 mEq/L; central até 80 mEq/L
+• Velocidade: máximo 20 mEq/h via periférica; 40 mEq/h via central com monitor cardíaco
+• NUNCA KCl em bolus EV → fibrilação ventricular
+• Repor Mg²⁺: sulfato de magnésio 2 g EV em 1h se Mg²⁺ baixo (hipomagnesemia refratariza hipocalemia)
+• Monitorar K⁺ a cada 2–4h + ECG contínuo durante infusão
+• Associar reposição VO assim que tolerar
+• Investigar causa de fundo: síndromes de Bartter/Gitelman, hiperaldosteronismo, uso de anfotericina B
+Ref: Weiner ID & Wingo CS, JASN 1997 · Kraft MD et al., Pharmacotherapy 2005`
+};
+
+// ── Carregar condutas salvas (ou usar padrão) ──
+function mgGetConduta(key) {
+  try {
+    var stored = JSON.parse(localStorage.getItem(MG_CONDUTAS_KEY) || '{}');
+    return stored[key] !== undefined ? stored[key] : (MG_CONDUTAS_DEFAULT[key] || '');
+  } catch(e) { return MG_CONDUTAS_DEFAULT[key] || ''; }
+}
+
+// ── Salvar conduta editada ──
+function mgSaveConduta(key, text) {
+  try {
+    var stored = JSON.parse(localStorage.getItem(MG_CONDUTAS_KEY) || '{}');
+    stored[key] = text;
+    localStorage.setItem(MG_CONDUTAS_KEY, JSON.stringify(stored));
+  } catch(e) {}
+}
+
+// ── Restaurar conduta padrão ──
+function mgResetConduta(key, elId) {
+  try {
+    var stored = JSON.parse(localStorage.getItem(MG_CONDUTAS_KEY) || '{}');
+    delete stored[key];
+    localStorage.setItem(MG_CONDUTAS_KEY, JSON.stringify(stored));
+  } catch(e) {}
+  var el = document.getElementById(elId);
+  if (el) el.innerText = MG_CONDUTAS_DEFAULT[key] || '';
+  toast('✅ Conduta restaurada para o padrão');
+}
+
+// ── Exibir resultado + conduta salva (editável com auto-save) ──
+function showResWithConduta(resId, calcHtml, condutaKey) {
+  var el = document.getElementById(resId);
+  if (!el) return;
+  var conduta = mgGetConduta(condutaKey);
+
+  // Bloco do resultado calculado — editável diretamente
+  var calcDiv = '<div id="calc_result_' + resId + '"'
+    + ' contenteditable="true" spellcheck="false"'
+    + ' style="outline:none;white-space:pre-wrap;cursor:text"'
+    + ' title="✏️ Clique para editar o resultado">'
+    + calcHtml + '</div>';
+
+  // Separador visual
+  var sep = '<div style="border-top:1px dashed #c7d2fe;margin:10px 0 6px"></div>'
+    + '<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;'
+    + 'color:#6366f1;display:block;margin-bottom:4px">💊 CONDUTA SUGERIDA — editável</span>';
+
+  // Bloco da conduta — editável com save/restaurar
+  var condutaDiv = '<div id="conduta_' + condutaKey + '"'
+    + ' contenteditable="true" spellcheck="false"'
+    + ' style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:8px 10px;'
+    + 'white-space:pre-wrap;font-family:var(--mono);font-size:11.5px;line-height:1.75;'
+    + 'cursor:text;min-height:40px;outline:none">'
+    + esc(conduta) + '</div>';
+
+  // Botões salvar / restaurar
+  var btns = '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'
+    + '<button onclick="mgSaveCondutaFromEl(\'' + condutaKey + '\')"'
+    + ' style="background:#16a34a;color:#fff;border:none;padding:4px 12px;border-radius:5px;'
+    + 'font-size:11px;font-weight:700;cursor:pointer">💾 Salvar conduta</button>'
+    + '<button onclick="mgResetConduta(\'' + condutaKey + '\',\'conduta_' + condutaKey + '\')"'
+    + ' style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;padding:4px 10px;'
+    + 'border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">↺ Restaurar padrão</button>'
+    + '</div>';
+
+  el.innerHTML = calcDiv + sep + condutaDiv + btns;
+  el.style.display = 'block';
+  el.contentEditable = 'false'; // os divs internos são os editáveis
+}
+
+function mgSaveCondutaFromEl(key) {
+  var el = document.getElementById('conduta_' + key);
+  if (!el) return;
+  mgSaveConduta(key, el.innerText);
+  toast('💾 Conduta salva!');
+}
+
+// ── Expor funções de conduta ao escopo global ──
+window.mgSaveCondutaFromEl = mgSaveCondutaFromEl;
+window.mgResetConduta      = mgResetConduta;
+window.mgSaveConduta       = mgSaveConduta;
+window.mgGetConduta        = mgGetConduta;
+window.showResWithConduta  = showResWithConduta;
+
+function calcTFG() {
+  var cr    = parseFloat(document.getElementById('tfg_cr')?.value);
+  var idade = parseFloat(document.getElementById('tfg_idade')?.value);
+  var sexo  = document.getElementById('tfg_sexo')?.value;
+  if (!cr || !idade || cr <= 0 || idade <= 0) { toast('⚠️ Preencha creatinina e idade'); return; }
+  var kappa=sexo==='F'?0.7:0.9, alpha=sexo==='F'?-0.241:-0.302, sf=sexo==='F'?1.012:1.0;
+  var r=cr/kappa, ckd;
+  if(r<1) ckd=142*Math.pow(r,alpha)*Math.pow(0.9938,idade)*sf;
+  else    ckd=142*Math.pow(r,-1.2)*Math.pow(0.9938,idade)*sf;
+  ckd=Math.round(ckd*10)/10;
+  var mdrd=Math.round(175*Math.pow(cr,-1.154)*Math.pow(idade,-0.203)*(sexo==='F'?0.742:1)*10)/10;
+  var est,ck;
+  if(ckd>=90){est='G1 ≥ 90';ck='tfg_g1';}
+  else if(ckd>=60){est='G2 (60–89)';ck='tfg_g2';}
+  else if(ckd>=45){est='G3a (45–59)';ck='tfg_g3a';}
+  else if(ckd>=30){est='G3b (30–44)';ck='tfg_g3b';}
+  else if(ckd>=15){est='G4 (15–29)';ck='tfg_g4';}
+  else{est='G5 < 15 — TRS';ck='tfg_g5';}
+  showResWithConduta('r_tfg',
+    '<strong>TFG CKD-EPI 2021: '+ckd+' mL/min/1,73m²</strong>  |  MDRD: '+mdrd+' mL/min/1,73m²\n📊 Estadiamento KDIGO 2024: <strong>'+est+'</strong>\n<small style="color:#6b7280">Ref: Inker et al., NEJM 2021 · KDIGO 2024 · MS PCDT DRC 2022 · SBD 2025</small>',ck);
+}
+
+function calcGasometria() {
+  var ph=parseFloat(document.getElementById('gaso_ph')?.value);
+  var pco2=parseFloat(document.getElementById('gaso_pco2')?.value);
+  var hco3=parseFloat(document.getElementById('gaso_hco3')?.value);
+  var po2=parseFloat(document.getElementById('gaso_po2')?.value);
+  var na=parseFloat(document.getElementById('gaso_na')?.value);
+  var cl=parseFloat(document.getElementById('gaso_cl')?.value);
+  var alb=parseFloat(document.getElementById('gaso_alb')?.value)||4.0;
+  var lac=parseFloat(document.getElementById('gaso_lac')?.value);
+  if(!ph||!pco2||!hco3){toast('⚠️ Preencha pH, pCO₂ e HCO₃⁻');return;}
+  var L=[];
+  var acid=ph<7.35,alc=ph>7.45;
+  L.push('pH '+ph.toFixed(2)+' → '+(acid?'🔴 ACIDOSE':alc?'🔵 ALCALOSE':'⚪ pH normal'));
+  var tipo='',ck='gaso_acid_met';
+  if(acid){
+    if(hco3<22&&pco2<=45){tipo='Acidose Metabólica';ck='gaso_acid_met';}
+    else if(pco2>45&&hco3>=22){tipo='Acidose Respiratória';ck='gaso_acid_resp';}
+    else{tipo='Acidose Mista (Resp + Met)';ck='gaso_acid_met';}
+  }else if(alc){
+    if(hco3>26&&pco2>=35){tipo='Alcalose Metabólica';ck='gaso_alc_met';}
+    else if(pco2<35&&hco3<=26){tipo='Alcalose Respiratória';ck='gaso_alc_resp';}
+    else{tipo='Alcalose Mista';ck='gaso_alc_met';}
+  }else{
+    if(hco3<22&&pco2<35){tipo='Acidose Met + Alcalose Resp — misto compensado';ck='gaso_acid_met';}
+    else if(hco3>26&&pco2>45){tipo='Alcalose Met + Acidose Resp — misto compensado';ck='gaso_alc_met';}
+    else{tipo='Sem distúrbio primário detectado';}
+  }
+  L.push('Distúrbio: <strong>'+tipo+'</strong>');
+  if(tipo.includes('Acidose Met')){
+    var esp=(1.5*hco3+8);
+    L.push('pCO₂ esperado (Winter): '+(esp-2).toFixed(1)+'–'+(esp+2).toFixed(1)+' mmHg | medido: '+pco2+(pco2>=esp-2&&pco2<=esp+2?' ✅ adequado':pco2<esp-2?' ⚠️ Alcalose Resp adicional?':' ⚠️ Acidose Resp adicional?'));
+  }else if(tipo.includes('Alcalose Met')){
+    var esp=(0.7*hco3+21);
+    L.push('pCO₂ esperado: '+(esp-2).toFixed(1)+'–'+(esp+2).toFixed(1)+' | medido: '+pco2+(pco2>=esp-2&&pco2<=esp+2?' ✅':'  ⚠️ distúrbio misto?'));
+  }else if(tipo.includes('Acid Resp')){
+    var dc=pco2-40;
+    L.push('HCO₃ esperado aguda: ~'+(24+dc/10).toFixed(1)+' | crônica: ~'+(24+3.5*dc/10).toFixed(1)+' | medido: '+hco3);
+  }else if(tipo.includes('Alc Resp')){
+    var dc=40-pco2;
+    L.push('HCO₃ esperado aguda: ~'+(24-2*dc/10).toFixed(1)+' | crônica: ~'+(24-5*dc/10).toFixed(1)+' | medido: '+hco3);
+  }
+  if(na&&cl){
+    var ag=na-(cl+hco3), agc=ag+2.5*(4.0-alb);
+    L.push('Ânion Gap: '+ag.toFixed(1)+' | AG corrigido (alb '+alb+'): <strong>'+agc.toFixed(1)+'</strong>');
+    if(agc>12){
+      L.push('AG alto → MUDPILES: Metanol, Uremia, DKA, Paracetamol, Isoniazida, Lactato, Etanol, Salicilatos');
+      var dAG=agc-12,dHCO3=24-hco3;
+      if(dHCO3!==0){var dd=(dAG/dHCO3).toFixed(2);L.push('Δ/Δ: '+dd+(parseFloat(dd)<1?' → misto (AG alto+normal)':parseFloat(dd)>2?' → AG alto+Alcalose Met concomitante':' → Acidose Met pura com AG alto'));}
+    }else{L.push('AG normal → HARDUP: Hiperalimentação, Acetazolamida, RTA, Diarreia, Ureterossigmoide, Pâncreas');}
+  }
+  if(po2) L.push('pO₂ '+po2+' → '+(po2>=80?'✅ Normal':po2>=60?'⚠️ Hipoxemia leve':po2>=40?'🔴 Hipoxemia moderada':'🔴 Hipoxemia grave'));
+  if(lac) L.push('Lactato '+lac+' mmol/L → '+(lac<2?'✅ Normal':lac<4?'⚠️ Hipoperfusão':'🔴 Lactato grave ≥ 4 — critério de sepse'));
+  L.push('<small style="color:#6b7280">Ref: Kellum JA, Crit Care Med 2007 · Fórmula de Winter, Am J Med 1967 · Harrison\'s 21ª ed.</small>');
+  showResWithConduta('r_gaso',L.join('\n'),ck);
+}
+
+function calcCHA2DS2() {
+  var s={c2_ic:1,c2_has:1,c2_idade75:2,c2_dm:1,c2_avc:2,c2_vasc:1,c2_idade65:1,c2_sexoF:1};
+  var tot=Object.keys(s).reduce(function(a,id){return a+(document.getElementById(id)?.checked?s[id]:0);},0);
+  var risco=tot===0?'Muito baixo (~0%/ano)':tot===1?'Baixo (~1,3%/ano)':tot===2?'Moderado (~2,2%/ano)':tot<=4?'Alto (~4–6%/ano)':'Muito alto (>6%/ano)';
+  var ck=tot===0?'cha2_0':tot===1?'cha2_1':'cha2_2';
+  showResWithConduta('r_cha2',
+    '<strong>CHA₂DS₂-VASc: '+tot+' pontos</strong>\nRisco de AVC: '+risco+'\n<small style="color:#6b7280">Ref: Lip GYH et al., Chest 2010 · ESC FA 2024 · SBC FA 2025</small>',ck);
+}
+
+function calcHASBLED() {
+  var ids=['hb_has','hb_renal','hb_hepatico','hb_avc','hb_sangramento','hb_inr','hb_drogas','hb_alcool','hb_idade65'];
+  var s=ids.reduce(function(a,id){return a+(document.getElementById(id)?.checked?1:0);},0);
+  var r=s<=2?'🟢 Baixo risco':s===3?'🟡 Moderado':'🔴 Alto risco — corrigir FR modificáveis';
+  var ck=s<=2?'hasbled_baixo':'hasbled_alto';
+  showResWithConduta('r_hasbled',
+    '<strong>HAS-BLED: '+s+' pontos</strong>\n'+r+'\n<small style="color:#6b7280">Ref: Pisters R et al., Chest 2010 · ESC FA 2024</small>',ck);
+}
+
+function calcAnionGap() {
+  var na=parseFloat(document.getElementById('ag_na')?.value);
+  var cl=parseFloat(document.getElementById('ag_cl')?.value);
+  var hco3=parseFloat(document.getElementById('ag_hco3')?.value);
+  var alb=parseFloat(document.getElementById('ag_alb')?.value)||4.0;
+  if(!na||!cl||!hco3){toast('⚠️ Preencha Na⁺, Cl⁻ e HCO₃⁻');return;}
+  var ag=na-(cl+hco3), agc=ag+2.5*(4.0-alb);
+  var dd='';
+  if(agc>12){var dAG=agc-12,dHCO3=24-hco3;if(dHCO3!==0){var ratio=(dAG/dHCO3);dd='\nΔ/Δ: '+ratio.toFixed(2)+(ratio<1?' → misto (AG alto+normal)':ratio>2?' → AG alto+Alcalose Met concomitante':' → Acidose Met pura');}}
+  var ck=agc>12?'ag_alto':'ag_normal';
+  showResWithConduta('r_ag',
+    '<strong>Ânion Gap: '+ag.toFixed(1)+' mEq/L</strong>  |  AG corrigido (alb '+alb+'): <strong>'+agc.toFixed(1)+'</strong>'+dd+'\n'+(agc>12?'AG alto → MUDPILES':'AG normal → HARDUP')+'\n<small style="color:#6b7280">Ref: Emmett & Narins, Medicine 1977 · Figge et al., JAMA 1992</small>',ck);
+}
+
+function calcFENa() {
+  var naU=parseFloat(document.getElementById('fena_naU')?.value);
+  var naS=parseFloat(document.getElementById('fena_naS')?.value);
+  var crU=parseFloat(document.getElementById('fena_crU')?.value);
+  var crS=parseFloat(document.getElementById('fena_crS')?.value);
+  if(!naU||!naS||!crU||!crS){toast('⚠️ Preencha todos os campos');return;}
+  var fena=((naU*crS)/(naS*crU))*100;
+  var tipo=fena<1?'🟢 Pré-renal (< 1%)':fena>2?'🔴 Renal/NTA (> 2%)':'🟡 Indeterminado (1–2%)';
+  var ck=fena<1?'fena_prerenal':'fena_renal';
+  showResWithConduta('r_fena',
+    '<strong>FENa: '+fena.toFixed(2)+'%</strong>\n'+tipo+'\n<small style="color:#6b7280">Ref: Espinel CH, JAMA 1976 · KDIGO AKI 2012</small>',ck);
+}
+
+function calcOsmolalidade() {
+  var na=parseFloat(document.getElementById('osm_na')?.value);
+  var gli=parseFloat(document.getElementById('osm_gli')?.value)||90;
+  var bunVal=parseFloat(document.getElementById('osm_bun')?.value)||0;
+  var etoh=parseFloat(document.getElementById('osm_etoh')?.value)||0;
+  var isUreia=document.getElementById('osm_ureia_total')?.checked;
+  if(!na){toast('⚠️ Preencha pelo menos o Na⁺');return;}
+  var bun=isUreia?bunVal/2.8:bunVal;
+  var osmCalc=2*na+(gli/18)+(bun/2.8)+(etoh/4.6);
+  var naCorr=na+(gli>100?2.4*((gli-100)/100):0);
+  var stato=osmCalc<275?'🔵 Hipoosmolar (< 275)':osmCalc>295?'🔴 Hiperosmolar (> 295)':'✅ Normal (275–295)';
+  var ck=osmCalc<275?'osm_hipo':'osm_hiper';
+  showResWithConduta('r_osm',
+    '<strong>Osmolalidade calculada: '+osmCalc.toFixed(1)+' mOsm/kg</strong>\n'+stato+'\nNa⁺ corrigido pela glicemia: <strong>'+naCorr.toFixed(1)+' mEq/L</strong> (Hillier 1999: +2,4 por 100 mg/dL acima de 100)\n'+(Math.abs(osmCalc-(2*na+gli/18+bun/2.8))>10?'⚠️ Gap osmolar elevado — investigar tóxicos (metanol, etilenoglicol, manitol)':'')+'\n<small style="color:#6b7280">Ref: Weisberg LS, Am J Med 1989 · Hillier et al., Am J Med 1999</small>',ck);
+}
+
+function calcDeficitAgua() {
+  var na=parseFloat(document.getElementById('dal_na')?.value);
+  var peso=parseFloat(document.getElementById('dal_peso')?.value);
+  var sexo=document.getElementById('dal_sexo')?.value;
+  var alvo=parseFloat(document.getElementById('dal_na_alvo')?.value)||140;
+  if(!na||!peso){toast('⚠️ Preencha Na⁺ e peso');return;}
+  var fAC=sexo==='F'?0.5:0.6;
+  var ACT=fAC*peso;
+  var deficit=ACT*((na/alvo)-1);
+  var v24=deficit/24, v48=deficit/48;
+  showResWithConduta('r_dal',
+    '<strong>Déficit de Água Livre: '+deficit.toFixed(1)+' L</strong>\nÁgua corporal total: '+ACT.toFixed(1)+' L\nCorreção em 48h (segura): '+v48.toFixed(2)+' L/h  |  em 24h (risco): '+v24.toFixed(2)+' L/h\n⚠️ Máx seguro: ↓ 10 mEq/L Na⁺ em 24h (edema cerebral se mais rápido)\n<small style="color:#6b7280">Ref: Adrogue & Madias, NEJM 2000 · Sterns RH, UpToDate 2024</small>',
+    'dal_conduta');
+}
+
+function calcQSOFA() {
+  var ids=['qsofa_nc','qsofa_fr','qsofa_pa'];
+  var s=ids.reduce(function(a,id){return a+(document.getElementById(id)?.checked?1:0);},0);
+  var r=s>=2?'🔴 qSOFA ≥ 2 — marcador de pior prognóstico — avaliar SOFA completo + bundle':s===1?'🟡 qSOFA 1 — vigilância aumentada':'🟢 qSOFA 0 — baixa probabilidade';
+  var ck=s>=2?'qsofa_pos':'qsofa_neg';
+  showResWithConduta('r_qsofa',
+    '<strong>qSOFA: '+s+'/3</strong>\n'+r+'\n⚠️ SSC 2021: qSOFA não deve ser usado como ferramenta de triagem isolada (baixa sensibilidade)\n<small style="color:#6b7280">Ref: Singer M et al., JAMA 2016 · SSC 2021 (Evans et al., Crit Care Med 2021)</small>',ck);
+}
+
+function calcSOFA() {
+  var pf=parseFloat(document.getElementById('sofa_pf')?.value)||400;
+  var plaq=parseFloat(document.getElementById('sofa_plaq')?.value)||200;
+  var bili=parseFloat(document.getElementById('sofa_bili')?.value)||0.8;
+  var gcs=parseFloat(document.getElementById('sofa_gcs')?.value)||15;
+  var cr=parseFloat(document.getElementById('sofa_cr')?.value)||0.8;
+  var pam=parseInt(document.getElementById('sofa_pam')?.value)||0;
+  var sPF=pf>=400?0:pf>=300?1:pf>=200?2:pf>=100?3:4;
+  var sP=plaq>=150?0:plaq>=100?1:plaq>=50?2:plaq>=20?3:4;
+  var sB=bili<1.2?0:bili<2?1:bili<6?2:bili<12?3:4;
+  var sG=gcs===15?0:gcs>=13?1:gcs>=10?2:gcs>=6?3:4;
+  var sC=cr<1.2?0:cr<2?1:cr<3.5?2:cr<5?3:4;
+  var tot=sPF+sP+sB+sG+sC+pam;
+  var mort=tot<=1?'<10%':tot<=3?'10–15%':tot<=6?'15–20%':tot<=9?'20–40%':'>40%';
+  var ck=tot<2?'sofa_baixo':tot<7?'sofa_moderado':'sofa_grave';
+  showResWithConduta('r_sofa',
+    '<strong>SOFA Total: '+tot+'/24</strong>\nResp(P/F):'+sPF+' | Coag(Plaq):'+sP+' | Hep(Bili):'+sB+' | Neuro(GCS):'+sG+' | Renal(Cr):'+sC+' | CV(PAM/vasopr):'+pam+'\nMortalidade estimada: '+mort+'\n'+(tot>=2?'✅ Critério de <strong>SEPSE</strong> se elevação ≥ 2 pontos do basal (Sepsis-3)':'')+'\n<small style="color:#6b7280">Ref: Singer M et al., JAMA 2016 · SSC 2021 · Evans L et al., Crit Care Med 2021</small>',ck);
+}
+
+function calcIndiceChoque() {
+  var fc=parseFloat(document.getElementById('ic_fc')?.value);
+  var pas=parseFloat(document.getElementById('ic_pas')?.value);
+  if(!fc||!pas){toast('⚠️ Preencha FC e PAS');return;}
+  var ic=fc/pas;
+  var cl,ck;
+  if(ic<0.9){cl='🟢 Normal (< 0,9)';ck='ic_normal';}
+  else if(ic<1.0){cl='🟡 Comprometimento leve (0,9–0,99)';ck='ic_leve';}
+  else if(ic<1.4){cl='🟠 Choque compensado (1,0–1,39)';ck='ic_moderado';}
+  else{cl='🔴 Choque grave (≥ 1,4) — colapso iminente';ck='ic_grave';}
+  showResWithConduta('r_ichoque',
+    '<strong>Índice de Choque: '+ic.toFixed(2)+'</strong>\n'+cl+'\nNormal adulto: 0,5–0,7 | > 1,2 associado a maior mortalidade hospitalar\n<small style="color:#6b7280">Ref: Allgöwer & Burri 1967 · ATLS 10ª ed. · Birkhahn RH, J Trauma 2005</small>',ck);
+}
+
+function calcReposicaoNa() {
+  var naAt=parseFloat(document.getElementById('repna_atual')?.value);
+  var naAlvo=parseFloat(document.getElementById('repna_alvo')?.value)||125;
+  var peso=parseFloat(document.getElementById('repna_peso')?.value);
+  var sexo=document.getElementById('repna_sexo')?.value;
+  if(!naAt||!peso){toast('⚠️ Preencha Na⁺ atual e peso');return;}
+  var fAC=sexo==='F'?0.5:0.6;
+  var def=fAC*peso*(naAlvo-naAt);
+  var ck=def>0?'repna_deficit':'repna_excesso';
+  var info=def>0?
+    'Repor com NaCl 3% (513 mEq/L): '+(def/513*1000).toFixed(0)+' mL  |  SF 0,9%: '+(def/154*1000).toFixed(0)+' mL\n⚠️ Máximo seguro: ↑ 8–12 mEq/L em 24h (mielinólise osmótica central se mais rápido)':
+    'Sódio acima do alvo — repor água livre: SG 5% '+(Math.abs(def)/513*1000).toFixed(0)+' mL\n⚠️ Máximo seguro: ↓ 10 mEq/L em 24h';
+  showResWithConduta('r_repna',
+    '<strong>Déficit de Na⁺: '+def.toFixed(1)+' mEq</strong>  (Na⁺ atual: '+naAt+' → alvo: '+naAlvo+')\n'+info+'\n<small style="color:#6b7280">Ref: Adrogue & Madias, NEJM 2000 · Spasovski G et al., Eur J Endocrinol 2014</small>',ck);
+}
+
+function calcReposicaoK() {
+  var kAt=parseFloat(document.getElementById('repk_atual')?.value);
+  var kAlvo=parseFloat(document.getElementById('repk_alvo')?.value)||4.0;
+  var peso=parseFloat(document.getElementById('repk_peso')?.value);
+  if(!kAt||!peso){toast('⚠️ Preencha K⁺ atual e peso');return;}
+  var def=Math.round((kAlvo-kAt)*10*(peso*0.3));
+  var ck=kAt>=3.0?'repk_leve':'repk_grave';
+  showResWithConduta('r_repk',
+    '<strong>Déficit estimado de K⁺: ~'+def+' mEq</strong>\n(Estimativa: varia com equilíbrio ácido-base e distribuição celular)\nK⁺ atual: '+kAt+' → alvo: '+kAlvo+' mEq/L\nVia: '+(kAt>=3.0?'oral preferencial':'EV necessária')+'\n<small style="color:#6b7280">Ref: Weiner ID & Wingo CS, JASN 1997 · Kraft MD et al., Pharmacotherapy 2005</small>',ck);
+}
+
 function renderConfig(container) {
   // Build the logo+médico section (same as buildReceitasHeader but standalone)
   const logoObj  = getLogos();
@@ -7179,6 +8350,55 @@ function openWordModal(k, si, ii) {
   setTimeout(() => document.getElementById('wrd_nome')?.focus(), 100);
 }
 window.openWordModal = openWordModal;
+
+// ── Abre diretamente para Controle Especial (sem passar pelo modal de receita) ──
+function openWordModalControle(k, si, ii) {
+  _wordItem = D[k]?.sections?.[si]?.items?.[ii];
+  if (!_wordItem) return;
+  window._pedReceita = null;
+  // Cria mini-modal de nome do paciente só para o controle especial
+  const old = document.getElementById('_ceQuickModal');
+  if (old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = '_ceQuickModal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:14px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,.25);overflow:hidden">
+      <div style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:12px 16px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">🖨️</span>
+        <span style="font-size:14px;font-weight:800;color:#fff;flex:1">Receita de Controle Especial</span>
+        <button onclick="document.getElementById('_ceQuickModal').remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:700;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:16px">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6b7280;display:block;margin-bottom:5px">Nome do Paciente</label>
+        <input id="_ceNomeInput" class="field" placeholder="Digite o nome completo do paciente" autofocus style="margin:0 0 8px">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6b7280;display:block;margin-bottom:5px">Observações (opcional)</label>
+        <input id="_ceObsInput" class="field" placeholder="Ex: Retorno em 7 dias..." style="margin:0 0 14px">
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="document.getElementById('_ceQuickModal').remove()" style="background:#f1f5f9;border:1.5px solid #e2e8f0;color:#374151;padding:9px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>
+          <button id="_cePrintBtn" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;padding:9px 22px;border-radius:7px;font-size:13px;font-weight:800;cursor:pointer">🖨️ Imprimir Controle Especial</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('_ceNomeInput')?.focus(), 80);
+  // Bind do botão imprimir
+  document.getElementById('_cePrintBtn').onclick = function() {
+    const nome = (document.getElementById('_ceNomeInput')?.value || '').trim();
+    const obs  = (document.getElementById('_ceObsInput')?.value  || '').trim();
+    overlay.remove();
+    // Popula os campos do modal de receita e dispara gerarControleEspecial
+    document.getElementById('wrd_nome').value    = nome;
+    document.getElementById('wrd_obs').value     = obs;
+    document.getElementById('wrd_content').value = _wordItem.content || '';
+    gerarControleEspecial();
+  };
+  // Enter no input de nome → imprimir
+  document.getElementById('_ceNomeInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('_cePrintBtn').click();
+  });
+}
+window.openWordModalControle = openWordModalControle;
 
 // (logo functions migrated to multi-logo system above)
 
