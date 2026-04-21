@@ -1661,7 +1661,7 @@ function bgSaveItem(abaKey, si, ii) {
   if (nEl) D[abaKey].sections[si].items[ii].notes   = nEl.value;
 
   save();
-  if (typeof salvarNaNuvem === 'function') setTimeout(salvarNaNuvem, 500);
+  agendarSync();
   toast('💾 Salvo com sucesso!');
 
   // Rebuscar para atualizar os dados em memória e re-render o card
@@ -1680,7 +1680,7 @@ function bgDeleteItem(abaKey, si, ii) {
   if (!confirm('Excluir "' + (item.title||'este item') + '"? Esta ação não pode ser desfeita.')) return;
   D[abaKey].sections[si].items.splice(ii, 1);
   save();
-  if (typeof salvarNaNuvem === 'function') setTimeout(salvarNaNuvem, 500);
+  agendarSync();
   toast('🗑 Item excluído');
   var inp = document.getElementById('bgSearchInput');
   var q   = inp ? inp.value.trim().toLowerCase() : '';
@@ -2245,6 +2245,8 @@ function save() {
   // Auto-sync: espera 3s de inatividade e envia pro GitHub automaticamente
   clearTimeout(_autoSyncTimer);
   _autoSyncTimer = setTimeout(() => autoSyncToGithub(), 3000);
+  // Marca timestamp local para comparação com Firebase
+  try { localStorage.setItem('mg_saved_at', Date.now().toString()); } catch(e) {}
 }
 
 // Carrega dados: localStorage → Firebase → ORIGINAL (fallback final)
@@ -2335,30 +2337,16 @@ function load() {
   if (D['diluicoes']) D['diluicoes'].label = 'Prescrever Agora';
   Object.keys(DEF_GROUPS).forEach(function(k){ if (!G[k]) G[k] = DEF_GROUPS[k]; });
 
-  // Merge com ORIGINAL: garantir que nenhuma aba fique vazia
+  // Merge MÍNIMO com ORIGINAL: só adiciona abas completamente ausentes.
+  // NUNCA sobrescreve seções ou itens existentes — Firebase é a fonte da verdade.
   Object.keys(ORIGINAL).forEach(function(tabKey) {
     if (!D[tabKey]) {
       D[tabKey] = JSON.parse(JSON.stringify(ORIGINAL[tabKey]));
     } else if (ORIGINAL[tabKey] && ORIGINAL[tabKey].sections) {
       if (!D[tabKey].sections || D[tabKey].sections.length === 0) {
         D[tabKey].sections = JSON.parse(JSON.stringify(ORIGINAL[tabKey].sections));
-      } else {
-        // Garantir que todos os itens do ORIGINAL existam em D
-        (ORIGINAL[tabKey].sections || []).forEach(function(os) {
-          var ds = D[tabKey].sections.find(function(s){ return s.title === os.title; });
-          if (!ds) {
-            D[tabKey].sections.push(JSON.parse(JSON.stringify(os)));
-          } else {
-            (os.items || []).forEach(function(oi) {
-              var exists = (ds.items||[]).find(function(di){ return di.id === oi.id; });
-              if (!exists) {
-                if (!ds.items) ds.items = [];
-                ds.items.push(JSON.parse(JSON.stringify(oi)));
-              }
-            });
-          }
-        });
       }
+      // Não faz merge de itens — Firebase é fonte da verdade.
     }
   });
 }
@@ -2476,10 +2464,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch(e) {}
   })();
+
+  // ── Render imediato (localStorage) + Firebase aplica por cima em background ──
+  // Renderiza sem delay — Firebase sincroniza silenciosamente após o load.
   load();
   buildNav();
-  const hash = location.hash.replace('#','');
-  goTo(D[hash] ? hash : Object.keys(D).filter(k=>k!=='calculos'&&k!=='config'&&k!=='caderno')[0] || 'geral');
+  var _initHash = location.hash.replace('#','');
+  goTo(D[_initHash] ? _initHash : Object.keys(D).filter(function(k){ return k!=='calculos'&&k!=='config'&&k!=='caderno'; })[0] || 'geral');
   setupSearch();
   setupTabSearch();
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeAllModals(); });
@@ -2488,7 +2479,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('storage', function(e) {
     if (e.key === '_mg_imp_dosync' && e.newValue) {
       try { localStorage.removeItem('_mg_imp_dosync'); } catch(ex) {}
-      if (typeof salvarNaNuvem === 'function') setTimeout(salvarNaNuvem, 400);
+      agendarSync();
     }
   });
 
@@ -2828,10 +2819,17 @@ function renderTab(k) {
     if (k === 'obstetricia' && (sec.title === '💊 PRESCRIÇÕES — GINECOLOGIA' || sec.title === '💊 PRESCRIÇÕES — OBSTETRÍCIA')) return;
 
     const items = sec.items || [];
+    // Extrai emoji inicial do título da seção (se houver)
+    var secEmojiMatch = sec.title.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u);
+    var secEmoji = secEmojiMatch ? secEmojiMatch[1] : null;
+    var secTitleText = secEmoji ? sec.title.replace(secEmojiMatch[0], '') : sec.title;
+    var secEmojiHtml = secEmoji
+      ? `<span id="seco-${k}-${si}" onclick="event.stopPropagation();openSecEmojiPicker('${k}',${si},this)" title="Trocar emoji da seção" style="cursor:pointer;border-radius:4px;padding:0 3px;transition:background .12s;font-size:14px" onmouseover="this.style.background='var(--gray100)'" onmouseout="this.style.background=''\">${secEmoji}</span> `
+      : `<span id="seco-${k}-${si}" onclick="event.stopPropagation();openSecEmojiPicker('${k}',${si},this)" title="Adicionar emoji à seção" style="cursor:pointer;border-radius:4px;padding:0 3px;transition:background .12s;font-size:12px;color:var(--gray400)" onmouseover="this.style.background='var(--gray100)'" onmouseout="this.style.background=''">+😊</span> `;
     html += `
     <div class="section">
       <div class="sec-header">
-        <span class="sec-title" id="sttl-${k}-${si}">${esc(sec.title)}</span>
+        <span class="sec-title" id="sttl-${k}-${si}">${secEmojiHtml}${esc(secTitleText)}</span>
         <div class="sec-actions">
           <button class="sec-btn" onclick="openModalAddItemIn('${k}',${si})">+ item</button>
           <button class="sec-btn danger" onclick="confirmDelSec('${k}',${si})">🗑 seção</button>
@@ -4287,16 +4285,25 @@ function dilAllItems() {
   }
   return out;
 }
-function dilSaveItemEdit(itemId, newTitle, newContent) {
+function dilSaveItemEdit(itemId, newTitle, newContent, newNotes) {
   var tab = D['diluicoes']; if (!tab) return;
   var found = false;
   for (var s of (tab.sections||[])) {
     for (var it of (s.items||[])) {
-      if (it.id === itemId) { it.title = newTitle; it.content = newContent; found = true; break; }
+      if (it.id === itemId) {
+        it.title   = newTitle;
+        it.content = newContent;
+        if (newNotes !== undefined) it.notes = newNotes;
+        found = true; break;
+      }
     }
     if (found) break;
   }
-  if (found) { save(); toast('✅ Salvo!'); }
+  if (found) {
+    save();
+    agendarSync();
+    toast('✅ Salvo!');
+  }
 }
 window.dilSaveItemEdit = dilSaveItemEdit;
 
@@ -4389,39 +4396,153 @@ function dilPasteCard(gid, subLabel) {
 window.dilCopyCard = dilCopyCard;
 window.dilPasteCard = dilPasteCard;
 
-// ── Modal add/edit card ─────────────────────────────────────────
+// ── Modal add/edit card ─────────────────────────────────────────────
 function dilOpenCardModal(gradeId, editIdx) {
-  var grades=dilGradesLoad();
-  var grade=grades.find(function(g){return g.id===gradeId;});
+  var grades = dilGradesLoad();
+  var grade  = grades.find(function(g){ return g.id === gradeId; });
   if (!grade) return;
-  var ed = (editIdx!==null && editIdx>=0) ? dilGradeCards(grade)[editIdx] : null;
-  var allItems=dilAllItems();
-  var opts=allItems.map(function(it){
-    return '<option value="'+esc(it.id)+'"'+(it.id===(ed?ed.id:'')?' selected':'')+'>'+esc(it.title)+'</option>';
-  }).join('');
-  var old=document.getElementById('modalDilCard'); if(old) old.remove();
-  var modal=document.createElement('div'); modal.className='modal show'; modal.id='modalDilCard';
-  modal.innerHTML='<div class="modal-overlay" onclick="document.getElementById(\'modalDilCard\').remove()"></div>'
-    +'<div class="modal-box" style="max-width:400px">'
+  var ed     = (editIdx !== null && editIdx >= 0) ? dilGradeCards(grade)[editIdx] : null;
+  var edItem = ed ? dilGetItem(ed.id) : null;
+
+  // Subseções da grade para o "Colocar em" (só em novo card)
+  var subsOpts = '<option value="__grade__">Direto na grade</option>';
+  if (grade.subsections && grade.subsections.length > 0) {
+    grade.subsections.forEach(function(sub) {
+      subsOpts += '<option value="__sub__'+esc(sub.label)+'">📂 '+esc(sub.label)+'</option>';
+    });
+  }
+  subsOpts += '<option value="__newsub__">✨ Nova seção...</option>';
+
+  var old = document.getElementById('modalDilCard'); if (old) old.remove();
+  var modal = document.createElement('div');
+  modal.className = 'modal show'; modal.id = 'modalDilCard';
+  modal.innerHTML =
+    '<div class="modal-overlay" onclick="document.getElementById(\'modalDilCard\').remove()"></div>'
+    +'<div class="modal-box" style="max-width:480px">'
     +'<div class="modal-head"><h3>'+(ed?'✏️ Editar card':'➕ Novo card')+'</h3>'
     +'<button class="modal-close" onclick="document.getElementById(\'modalDilCard\').remove()">×</button></div>'
     +'<div class="modal-body">'
-    +'<label>Prescrição vinculada</label><select id="dilc_item" class="field" onchange="dilSyncLabel()">'+opts+'</select>'
-    +'<label>Emoji</label><input id="dilc_emoji" class="field" value="'+esc(ed?ed.emoji:'💊')+'" style="font-size:20px;text-align:center;width:72px" oninput="dilPrev()">'
-    +'<label>Rótulo</label><input id="dilc_label" class="field" value="'+esc(ed?ed.label:'')+'" placeholder="ex: Morfina / Dor" oninput="dilPrev()">'
-    +'<div style="margin-top:10px;display:flex;align-items:center;gap:10px">'
-    +'<div style="border:1.5px solid '+grade.cardBorder+';background:'+grade.cardBg+';border-radius:9px;padding:10px 6px 8px;width:82px;text-align:center">'
-    +'<div id="dilc_pe" style="font-size:20px;line-height:1">'+esc(ed?ed.emoji:'💊')+'</div>'
-    +'<div id="dilc_pl" style="font-size:8.5px;font-weight:700;color:'+grade.cardColor+';line-height:1.3;margin-top:3px">'+esc(ed?ed.label:'Rótulo')+'</div>'
-    +'</div><span style="font-size:11px;color:var(--gray500)">Pré-visualização</span></div>'
+
+    // Rótulo + Emoji
+    +'<div style="display:flex;gap:8px;align-items:flex-end">'
+    +'<div style="flex:1"><label>Rótulo do card</label>'
+    +'<input id="dilc_label" class="field" value="'+esc(ed?ed.label:'')+'" placeholder="ex: Morfina / Dor" oninput="dilPrev()"></div>'
+    +'<div style="flex-shrink:0"><label>Emoji</label>'
+    +'<div style="display:flex;gap:4px;align-items:center">'
+    +'<input id="dilc_emoji" class="field" value="'+esc(ed?ed.emoji:'💊')+'" style="font-size:20px;text-align:center;width:56px" oninput="dilPrev()">'
+    +'<button type="button" onclick="openEmojiPickerGeneric(this,function(e){document.getElementById(\'dilc_emoji\').value=e;dilPrev();})" style="background:var(--gray100);border:1.5px solid var(--gray300);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:16px" title="Escolher emoji">😊</button>'
+    +'</div></div></div>'
+
+    // Prescrição
+    +'<label style="margin-top:10px">💊 Prescrição</label>'
+    +'<textarea id="dilc_content" class="field" style="min-height:100px;font-family:monospace;font-size:12px;line-height:1.7" placeholder="Texto da prescrição...">'+esc(edItem?edItem.content||'':'')+'</textarea>'
+
+    // Notas Clínicas
+    +'<label style="margin-top:8px">📋 Notas Clínicas</label>'
+    +'<textarea id="dilc_notes" class="field" style="min-height:60px;font-family:monospace;font-size:12px;line-height:1.7;background:#fffbeb;border-color:#fbbf24" placeholder="Alternativas, observações...">'+esc(edItem?edItem.notes||'':'')+'</textarea>'
+
+    // Colocar em (só em novo card)
+    +(ed ? '' :
+      '<label style="margin-top:10px">📂 Colocar em</label>'
+      +'<select id="dilc_destino" class="field">'+subsOpts+'</select>'
+      +'<div id="dilc_newsub_row" style="display:none;margin-top:6px">'
+      +'<input id="dilc_newsub_name" class="field" placeholder="Nome da nova seção">'
+      +'</div>'
+    )
+
     +'</div>'
     +'<div class="modal-foot">'
     +(ed?'<button class="btn-danger" onclick="dilDelCard(\''+gradeId+'\','+editIdx+')">🗑 Excluir</button>':'')
     +'<button class="btn-cancel" onclick="document.getElementById(\'modalDilCard\').remove()">Cancelar</button>'
-    +'<button class="btn-ok" onclick="dilSaveCard(\''+gradeId+'\','+(ed?editIdx:'null')+')">💾 Salvar</button>'
+    +'<button class="btn-ok" onclick="dilSaveCardNew(\''+gradeId+'\','+(ed?editIdx:'null')+')">💾 Salvar</button>'
     +'</div></div>';
+
   document.body.appendChild(modal);
+
+  var destiEl = document.getElementById('dilc_destino');
+  if (destiEl) {
+    destiEl.addEventListener('change', function() {
+      var row = document.getElementById('dilc_newsub_row');
+      if (row) row.style.display = this.value === '__newsub__' ? 'block' : 'none';
+    });
+  }
 }
+
+function dilSaveCardNew(gid, editIdx) {
+  var emoji   = (document.getElementById('dilc_emoji').value || '').trim() || '💊';
+  var label   = (document.getElementById('dilc_label').value || '').trim();
+  var content = (document.getElementById('dilc_content').value || '').trim();
+  var notes   = (document.getElementById('dilc_notes').value || '').trim();
+  if (!label) { toast('⚠️ Preencha o rótulo do card'); return; }
+
+  var grades = dilGradesLoad();
+  var grade  = grades.find(function(g){ return g.id === gid; });
+  if (!grade) return;
+
+  var isEd = editIdx !== null && editIdx !== 'null';
+
+  if (isEd) {
+    // Editar card existente — atualizar label/emoji e conteúdo do item
+    var fi     = parseInt(editIdx);
+    var cards  = dilGradeCards(grade);
+    var card   = cards[fi];
+    if (card) {
+      card.emoji = emoji;
+      card.label = label;
+      var item = dilGetItem(card.id);
+      if (item) { item.content = content; item.notes = notes; }
+      // Salvar no lugar certo (subsections ou cards)
+      if (grade.subsections) {
+        var cnt = 0;
+        grade.subsections.forEach(function(s) {
+          var sc = s.cards || [];
+          if (fi >= cnt && fi < cnt + sc.length) sc[fi - cnt] = card;
+          cnt += sc.length;
+        });
+      } else if (grade.cards) {
+        grade.cards[fi] = card;
+      }
+    }
+  } else {
+    // Novo card — criar item em D['diluicoes'] e adicionar card
+    var itemId  = 'dil_custom_' + Date.now();
+    var newItem = { id: itemId, icon: emoji, title: label, content: content, notes: notes };
+    if (!D['diluicoes']) D['diluicoes'] = { sections: [] };
+    var customSec = D['diluicoes'].sections.find(function(s){ return s.title === '⭐ PERSONALIZADAS'; });
+    if (!customSec) {
+      customSec = { title: '⭐ PERSONALIZADAS', items: [] };
+      D['diluicoes'].sections.unshift(customSec);
+    }
+    customSec.items.push(newItem);
+
+    var card    = { id: itemId, emoji: emoji, label: label };
+    var destiEl = document.getElementById('dilc_destino');
+    var destino = destiEl ? destiEl.value : '__grade__';
+
+    if (destino === '__newsub__') {
+      var novoNome = ((document.getElementById('dilc_newsub_name') || {}).value || '').trim();
+      if (!novoNome) { toast('⚠️ Digite o nome da nova seção'); return; }
+      if (!grade.subsections) grade.subsections = [];
+      grade.subsections.push({ label: novoNome, cards: [card] });
+    } else if (destino.startsWith('__sub__')) {
+      var subLabel = destino.replace('__sub__', '');
+      var sub = grade.subsections && grade.subsections.find(function(s){ return s.label === subLabel; });
+      if (sub) { if (!sub.cards) sub.cards = []; sub.cards.push(card); }
+      else { if (!grade.cards) grade.cards = []; grade.cards.push(card); }
+    } else {
+      if (!grade.cards) grade.cards = [];
+      grade.cards.push(card);
+    }
+  }
+
+  save();
+  dilGradesSave(grades);
+  agendarSync();
+  document.getElementById('modalDilCard').remove();
+  renderDiluicoes(document.getElementById('content'));
+  toast('✅ Card salvo!');
+}
+window.dilSaveCardNew = dilSaveCardNew;
 function dilSyncLabel(){
   var sel=document.getElementById('dilc_item');
   var it=dilAllItems().find(function(x){return x.id===sel.value;});
@@ -4480,6 +4601,27 @@ function dilDelCard(gid,ci){
 }
 window.dilOpenCardModal=dilOpenCardModal; window.dilSyncLabel=dilSyncLabel; window.dilPrev=dilPrev;
 window.dilSaveCard=dilSaveCard; window.dilDelCard=dilDelCard;
+
+// ── Trocar emoji de card DIL ──────────────────────────────────────
+function dilChangeEmoji(gradeId, cardIdx, anchorEl) {
+  openEmojiPickerGeneric(anchorEl, function(emoji) {
+    var grades = dilGradesLoad();
+    var grade  = grades.find(function(g){ return g.id === gradeId; });
+    if (!grade) return;
+    var flatCards = dilGradeCards(grade);
+    var card = flatCards[cardIdx];
+    if (!card) return;
+    card.emoji = emoji;
+    // Atualiza também o icon do item
+    var item = dilGetItem(card.id);
+    if (item) item.icon = emoji;
+    save();
+    dilGradesSave(grades);
+    renderDiluicoes(document.getElementById('content'));
+    toast('😊 Emoji atualizado!');
+  });
+}
+window.dilChangeEmoji = dilChangeEmoji;
 
 // Abre modal de novo card para uma subsection específica (pelo label)
 function dilOpenCardModalSub(gradeId, subLabel) {
@@ -4571,15 +4713,10 @@ function dilRenderGradePanel(gradeId) {
   panel.style.cssText = cv;
   panel.className = 'ig-panel open';
 
-  // Separar prescrição de notas clínicas
+  // Separar prescrição de notas clínicas — textarea EDITÁVEL com auto-save
   var notesRaw = (item.notes||'').trim();
-  var notesHtml = '';
-  if (notesRaw) {
-    notesHtml = '<div style="margin-top:10px;padding:8px 10px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 6px 6px 0">'
-      +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:#92400e;text-transform:uppercase;font-family:monospace;margin-bottom:4px">📋 Notas Clínicas</div>'
-      +'<pre style="font-family:monospace;font-size:11px;line-height:1.7;color:#78350f;white-space:pre-wrap;word-break:break-word;overflow-x:hidden;margin:0">'+esc(notesRaw)+'</pre>'
-      +'</div>';
-  }
+  var notesEditId = 'dil-notes-edit-' + gradeId;
+  var notesHtml = '<div style="margin-top:10px;padding:8px 10px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 6px 6px 0">'    +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:#92400e;text-transform:uppercase;font-family:monospace;margin-bottom:4px">'    +'📋 Notas Clínicas <span style="font-weight:400;color:#b45309;font-size:9px;text-transform:none">(clique para editar)</span></div>'    +'<textarea id="'+notesEditId+'" class="dil-notes-pre"'    +' style="width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;line-height:1.7;color:#78350f;'    +'background:transparent;border:1px dashed transparent;border-radius:4px;padding:2px 4px;resize:vertical;'    +'min-height:'+(notesRaw ? '60px' : '32px')+';outline:none;cursor:text;"'    +' placeholder="Adicionar notas, alternativas, observações..."'    +' onfocus="this.style.border=\'1px dashed #f59e0b\';this.style.background=\'#fef3c7\'"'    +' onblur="this.style.border=\'1px dashed transparent\';this.style.background=\'transparent\';dilSaveNotes(\''+gradeId+'\',this.value)"'    +'>'+esc(notesRaw)+'</textarea>'    +'</div>';
 
   // Botão calcular doses pediátricas se notas tiverem XX
   var temXX = /\bXX\b/.test(notesRaw);
@@ -4683,8 +4820,10 @@ function dilStartEdit(gradeId, cardIdx) {
     '<div style="padding:0 0 4px">'
     +'<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#92400e;font-family:monospace;margin-bottom:4px">Título</div>'
     +'<input class="ig-edit-title" id="dile-title-'+gradeId+'" value="'+esc(item.title)+'">'
-    +'<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1e40af;font-family:monospace;margin:6px 0 4px">💊 Prescrição</div>'
+    +'<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1e40af;font-family:monospace;margin:8px 0 4px">💊 Prescrição</div>'
     +'<textarea class="ig-edit-area" id="dile-content-'+gradeId+'">'+esc(item.content||'')+'</textarea>'
+    +'<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#92400e;font-family:monospace;margin:8px 0 4px">📋 Notas Clínicas</div>'
+    +'<textarea class="ig-edit-area" id="dile-notes-'+gradeId+'" style="min-height:80px;background:#fffbeb;border-color:#fbbf24">'+esc(item.notes||'')+'</textarea>'
     +'</div>'
     +'<div class="ig-edit-bar">'
     +'<button class="ig-save-btn" onclick="dilConfirmEdit(\''+gradeId+'\',\''+card.id+'\','+cardIdx+')">💾 Salvar</button>'
@@ -4696,9 +4835,16 @@ function dilStartEdit(gradeId, cardIdx) {
 function dilConfirmEdit(gradeId, itemId, cardIdx) {
   var titleEl   = document.getElementById('dile-title-'+gradeId);
   var contentEl = document.getElementById('dile-content-'+gradeId);
+  var notesEl   = document.getElementById('dile-notes-'+gradeId);
   if (!titleEl || !contentEl) return;
-  dilSaveItemEdit(itemId, titleEl.value, contentEl.value);
+  var item = dilGetItem(itemId);
+  if (!item) return;
+  item.title   = titleEl.value;
+  item.content = contentEl.value;
+  if (notesEl) item.notes = notesEl.value;
+  save();
   dilRenderGradePanel(gradeId);
+  toast('✅ Salvo!');
 }
 
 function dilCopyPanel(gradeId) {
@@ -4713,6 +4859,44 @@ function dilCopyPanel(gradeId) {
 }
 
 window.dilOpenPanel=dilOpenPanel; window.dilRenderGradePanel=dilRenderGradePanel;
+// ── Salva notas clínicas editadas inline no Prescrever Agora ──
+function dilSaveNotes(gradeId, newNotes) {
+  var cardId = _dilOpen[gradeId];
+  if (!cardId) return;
+  var item = dilGetItem(cardId);
+  if (!item) return;
+  var trimmed = (newNotes||'').trim();
+  if (trimmed === (item.notes||'').trim()) return; // sem alteração
+  item.notes = trimmed;
+  // Salvar de volta no item (D ou mg_dil_grades conforme origem)
+  var savedInD = false;
+  Object.keys(D).forEach(function(tabKey) {
+    if (savedInD) return;
+    (D[tabKey].sections||[]).forEach(function(sec) {
+      if (savedInD) return;
+      (sec.items||[]).forEach(function(it) {
+        if (it.id === cardId) { it.notes = trimmed; savedInD = true; }
+      });
+    });
+  });
+  if (savedInD) {
+    save();
+  } else {
+    // Item está em mg_dil_grades
+    var grades = dilGradesLoad();
+    grades.forEach(function(g) {
+      (dilGradeCards(g)||[]).forEach(function(c) {
+        if (c.id === cardId) {
+          var it2 = dilGetItem(cardId);
+          if (it2) it2.notes = trimmed;
+        }
+      });
+    });
+    dilGradesSave(grades);
+  }
+  toast('💾 Nota salva!');
+}
+window.dilSaveNotes = dilSaveNotes;
 window.dilClosePanel=dilClosePanel; window.dilStartEdit=dilStartEdit; window.dilConfirmEdit=dilConfirmEdit;
 window.dilCopyPanel=dilCopyPanel;
 
@@ -5027,8 +5211,10 @@ function dilTopEdit(itemId) {
     '<div style="padding:10px 12px 8px;border-bottom:1px solid #bae6fd">'
     + '<div style="font-size:9px;font-weight:700;color:#1e40af;text-transform:uppercase;font-family:monospace;margin-bottom:4px">Título</div>'
     + '<input id="diltop-title" class="field" value="' + esc(it.title) + '" style="margin-bottom:8px">'
-    + '<div style="font-size:9px;font-weight:700;color:#1e40af;text-transform:uppercase;font-family:monospace;margin-bottom:4px">Conteúdo</div>'
-    + '<textarea id="diltop-content" class="field" style="min-height:200px;font-family:monospace;font-size:12px;line-height:1.7">' + esc(it.content||'') + '</textarea>'
+    + '<div style="font-size:9px;font-weight:700;color:#1e40af;text-transform:uppercase;font-family:monospace;margin-bottom:4px">💊 Prescrição</div>'
+    + '<textarea id="diltop-content" class="field" style="min-height:160px;font-family:monospace;font-size:12px;line-height:1.7">' + esc(it.content||'') + '</textarea>'
+    + '<div style="font-size:9px;font-weight:700;color:#92400e;text-transform:uppercase;font-family:monospace;margin:8px 0 4px">📋 Notas Clínicas</div>'
+    + '<textarea id="diltop-notes" class="field" style="min-height:80px;font-family:monospace;font-size:12px;line-height:1.7;background:#fffbeb;border-color:#fbbf24">' + esc(it.notes||'') + '</textarea>'
     + '</div>'
     + '<div style="padding:8px 12px;display:flex;gap:6px;justify-content:flex-end">'
     + '<button id="diltop-cancel" style="background:var(--gray100);border:1px solid var(--gray300);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer">Cancelar</button>'
@@ -5045,9 +5231,17 @@ function dilTopEdit(itemId) {
 function dilTopSave(itemId) {
   var t = document.getElementById('diltop-title');
   var c = document.getElementById('diltop-content');
+  var n = document.getElementById('diltop-notes');
   if (!t || !c) return;
-  dilSaveItemEdit(itemId, t.value, c.value);
+  var item = dilGetItem(itemId);
+  if (!item) return;
+  item.title   = t.value;
+  item.content = c.value;
+  if (n) item.notes = n.value;
+  save();
+  agendarSync();
   dilTopOpen(itemId);
+  toast('✅ Salvo!');
 }
 window.dilTopOpen  = dilTopOpen;
 window.dilTopClose = dilTopClose;
@@ -5132,6 +5326,7 @@ function renderDiluicoes(container) {
                 + ' ondrop="dilDrop(event,\''+grade.id+'\','+ci+')"'
                 + ' ondragend="dilDE(event)">'
                 + '<div class="ig-acts">'
+                + '<span class="ig-act" onclick="event.stopPropagation();dilChangeEmoji(\''+grade.id+'\','+ci+',this)" title="Trocar emoji">😊</span>'
                 + '<span class="ig-act" onclick="event.stopPropagation();dilCopyCard(\''+grade.id+'\','+ci+')" title="Copiar card para outra subsessão" style="font-size:13px">📋</span>'
                 + '<span class="ig-act" onclick="event.stopPropagation();dilOpenCardModal(\''+grade.id+'\','+ci+')" title="Editar card">✏️</span>'
                 + '<span class="ig-act del" onclick="event.stopPropagation();dilDelCard(\''+grade.id+'\','+ci+')" title="Excluir card">✕</span>'
@@ -5143,9 +5338,10 @@ function renderDiluicoes(container) {
                 + '</div>';
         });
         html += '</div>'; // ig-grid
-        html += '<div class="ig-add" onclick="dilOpenCardModalSub(\''+grade.id+'\',\''+sub.label+'\')">＋ novo</div>';
-        html += '</div>'; // dil-subsec
+        html += '</div>'; // dil-subsec (sem + novo aqui)
       });
+      // + novo UMA VEZ, no rodapé da grade
+      html += '<div class="ig-add" onclick="dilOpenCardModal(\''+grade.id+'\',null)">＋ novo</div>';
     } else {
       // Fallback: grade sem subsecções (grid flat como antes)
       html += '<div class="ig-grid" data-gid="'+grade.id+'">';
@@ -5160,6 +5356,7 @@ function renderDiluicoes(container) {
               + ' ondrop="dilDrop(event,\''+grade.id+'\','+ci+')"'
               + ' ondragend="dilDE(event)">'
               + '<div class="ig-acts">'
+              + '<span class="ig-act" onclick="event.stopPropagation();dilChangeEmoji(\''+grade.id+'\','+ci+',this)" title="Trocar emoji">😊</span>'
               + '<span class="ig-act" onclick="event.stopPropagation();dilCopyCard(\''+grade.id+'\','+ci+')" title="Copiar card" style="font-size:13px">📋</span>'
               + '<span class="ig-act" onclick="event.stopPropagation();dilOpenCardModal(\''+grade.id+'\','+ci+')" title="Editar card">✏️</span>'
               + '<span class="ig-act del" onclick="event.stopPropagation();dilDelCard(\''+grade.id+'\','+ci+')" title="Excluir card">✕</span>'
@@ -9636,7 +9833,7 @@ function impSalvarEdicaoExistente() {
   sim.item.notes   = document.getElementById('imp_cmp_notas_ex').value;
 
   save();
-  if (typeof salvarNaNuvem === 'function') setTimeout(salvarNaNuvem, 500);
+  agendarSync();
   renderTab(sim.aba);
   toast('✅ "' + sim.item.title + '" salvo com sucesso!');
   impFecharComparar();
@@ -10140,7 +10337,7 @@ function aplicarBackup(parsed) {
   var firstTab = Object.keys(D).filter(function(k){ return k!=='calculos'&&k!=='config'&&k!=='caderno'; })[0];
   goTo(firstTab || 'geral');
   // Sobe imediatamente para o Firebase
-  setTimeout(function() { if (typeof salvarNaNuvem === 'function') salvarNaNuvem(); }, 500);
+  agendarSync();
   return true;
 }
 
@@ -10159,7 +10356,7 @@ function importData(e) {
         try { localStorage.setItem('mg_groups',  JSON.stringify(parsed.G));  } catch(e) {}
         try { localStorage.setItem('mg_icons',   JSON.stringify(parsed.IC)); } catch(e) {}
         load(); buildNav(); renderTab(activeTab);
-        setTimeout(function() { if (typeof salvarNaNuvem === 'function') salvarNaNuvem(); }, 500);
+        agendarSync();
         toast('📥 Backup restaurado (formato legado)!');
         closeModal('modalBackup');
         return;
@@ -11063,7 +11260,7 @@ window.gerarControleEspecial = gerarControleEspecial;
 // CHANGE DETECTION & GITHUB SYNC — AUTO
 // ══════════════════════════════════════════════════
 
-let _hasUnsyncedChanges = false;
+// _hasUnsyncedChanges declarada no bloco Firebase (abaixo)
 let _bannerDismissed    = false;
 let _syncDebounceTimer  = null;
 
@@ -13368,10 +13565,13 @@ function filterEmojis(q) {
     // Since we don't have names, show all from all cats for search
     pool = [...new Set(Object.values(EMOJI_CATS).flat())];
   }
-  const isTabMode = document.getElementById('emojiPicker').dataset.mode === 'tab';
-  grid.innerHTML = pool.map(e =>
-    `<button class="emoji-btn" onclick="${isTabMode ? 'pickEmojiForTab' : 'pickEmoji'}('${e}')" title="${e}">${e}</button>`
-  ).join('');
+  const mode = document.getElementById('emojiPicker').dataset.mode;
+  const isTabMode     = mode === 'tab';
+  const isGenericMode = mode === 'generic';
+  grid.innerHTML = pool.map(e => {
+    const fn = isTabMode ? `pickEmojiForTab('${e}')` : isGenericMode ? `pickEmojiGeneric('${e}')` : `pickEmoji('${e}')`;
+    return `<button class="emoji-btn" onclick="${fn}" title="${e}">${e}</button>`;
+  }).join('');
 }
 window.filterEmojis = filterEmojis;
 
@@ -13389,6 +13589,36 @@ function pickEmoji(emoji) {
   toast('✅ Ícone atualizado!');
 }
 window.pickEmoji = pickEmoji;
+
+// ── Picker genérico — para DIL cards, Info cards, seções, etc ──
+var _emojiGenericCb = null;
+function openEmojiPickerGeneric(anchorEl, callback) {
+  _emojiGenericCb = callback;
+  var picker = document.getElementById('emojiPicker');
+  var bd     = document.getElementById('emojiBackdrop');
+  var rect   = anchorEl.getBoundingClientRect();
+  picker.style.display = 'block';
+  bd.style.display     = 'block';
+  picker.dataset.mode  = 'generic';
+  delete picker.dataset.tabKey;
+  var top  = rect.bottom + 6;
+  var left = rect.left;
+  if (left + 300 > window.innerWidth) left = window.innerWidth - 310;
+  if (top + 320  > window.innerHeight) top = rect.top - 326;
+  picker.style.top  = top  + 'px';
+  picker.style.left = left + 'px';
+  buildEmojiCats();
+  filterEmojis('');
+  document.getElementById('emojiSearch').value = '';
+  setTimeout(function(){ document.getElementById('emojiSearch').focus(); }, 50);
+}
+window.openEmojiPickerGeneric = openEmojiPickerGeneric;
+
+function pickEmojiGeneric(emoji) {
+  if (_emojiGenericCb) { _emojiGenericCb(emoji); _emojiGenericCb = null; }
+  closeEmojiPicker();
+}
+window.pickEmojiGeneric = pickEmojiGeneric;
 
 // ── PICKER DE EMOJI PARA ABAS DO SIDEBAR ──────────────────────────
 let _tabEmojiTarget = null;
@@ -13428,6 +13658,22 @@ function pickEmojiForTab(emoji) {
   toast('✅ Ícone da aba atualizado!');
 }
 window.pickEmojiForTab = pickEmojiForTab;
+
+// ── Picker de emoji para seções ──────────────────────────────────
+function openSecEmojiPicker(k, si, anchorEl) {
+  openEmojiPickerGeneric(anchorEl, function(emoji) {
+    var sec = D[k] && D[k].sections && D[k].sections[si];
+    if (!sec) return;
+    // Se o título já começa com emoji, substitui; senão adiciona na frente
+    var oldTitle = sec.title;
+    var cleaned  = oldTitle.replace(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u, '');
+    sec.title = emoji + ' ' + cleaned;
+    save();
+    renderTab(k);
+    toast('😊 Emoji da seção atualizado!');
+  });
+}
+window.openSecEmojiPicker = openSecEmojiPicker;
 
 // ══════════════════════════════════════════════════
 // MOVER / COPIAR ITEM
@@ -13859,161 +14105,95 @@ function igExtractMeds(content) {
 
 var FIREBASE_URL = "https://medguia-aa494-default-rtdb.firebaseio.com/medguia.json";
 
-// ── Sobrescreve a função save() original ──
+// ── Sobrescreve save() para sempre agendar sync ──
 if (location.hash !== '#imp-review') {
-var _saveOriginal = save;
-save = function() {
-  _saveOriginal();
-  agendarSync();
-  // Sincroniza selects do modal Importar se estiver aberto
-  var _impModal = document.getElementById('modalImportarIA');
-  if (_impModal && _impModal.classList.contains('open') && typeof impSincronizarSelects === 'function') {
-    impSincronizarSelects();
-  }
-};
+  var _saveOriginal = save;
+  save = function() {
+    _saveOriginal();
+    agendarSync();
+    var _impModal = document.getElementById('modalImportarIA');
+    if (_impModal && _impModal.classList.contains('open') && typeof impSincronizarSelects === 'function') {
+      impSincronizarSelects();
+    }
+  };
 }
 
-// ── Agenda envio após 3 segundos de inatividade ──
+// ── Debounce: envia ao Firebase 1,5s após última edição ──
 var _syncTimer = null;
 function agendarSync() {
   clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(salvarNaNuvem, 3000);
+  _syncTimer = setTimeout(salvarNaNuvem, 1500);
 }
 
-// ── Monta payload com todos os dados ──
-// AVISO: imagens base64 nos cards de Info Clínica podem ser grandes.
-// O Firebase Realtime Database gratuito tem limite de 256 MB por projeto e 10 MB por request.
-// Se você tiver muitas imagens, considere usar Firebase Storage (URLs) em vez de base64.
+// ── Monta payload com TODOS os dados do usuário ──
 function montarPayload() {
-  var payload = {};
-  // ALL_DATA_KEYS definido no script principal — inclui grades, caderno, condutas etc.
   var chaves = window.ALL_DATA_KEYS || [
     'mg_data','mg_groups','mg_icons','mg_logos','mg_profiles',
     'mg_medico','mg_crm','mg_calc_data','mg_caderno2',
-    'mg_dil_grades','mg_info_grades','mg_calc_condutas_v2'
+    'mg_dil_grades','mg_info_grades','mg_dil_grades_ver','mg_info_grades_ver',
+    'mg_calc_condutas_v2'
   ];
-  chaves.forEach(function(chave) {
-    var val = localStorage.getItem(chave);
-    if (val !== null) payload[chave] = val;
+  var payload = {};
+  chaves.forEach(function(k) {
+    var v = localStorage.getItem(k);
+    if (v !== null) payload[k] = v;
   });
+  payload['mg_saved_at'] = Date.now().toString();
   return payload;
 }
 
-// ── Salva no Firebase ──
-var _saveRetryCount = 0;
-var _saveRetryMax = 3;
+// ── Salva no Firebase (com retry automático) ──
+var _hasUnsyncedChanges = false;
 function salvarNaNuvem() {
+  _hasUnsyncedChanges = true;
   showSyncIndicator('syncing');
   var payload = montarPayload();
-  // Backup local sempre antes de tentar Firebase (mantém últimas 2 versões)
-  try {
-    localStorage.setItem('mg_backup_' + (Date.now() % 2), JSON.stringify(payload));
-  } catch(e) {}
-  // Log do tamanho total sincronizado (útil para debug)
-  var tamanho = JSON.stringify(payload).length;
-  var kb = (tamanho / 1024).toFixed(1);
-  console.log('[MedGuia] Sincronizando ' + kb + ' KB com Firebase (' + Object.keys(payload).filter(function(k){ return payload[k]; }).length + ' chaves)');
-  _tentarSalvarFirebase(payload, 0);
-}
-function _tentarSalvarFirebase(payload, tentativa) {
-  var payloadStr = JSON.stringify(payload);
-  var sizeMB = (payloadStr.length / (1024 * 1024)).toFixed(2);
-  // Firebase Realtime DB gratuito: limite 10 MB por request, 256 MB total
-  if (payloadStr.length > 9 * 1024 * 1024) {
-    console.warn('[MedGuia] Payload muito grande para Firebase: ' + sizeMB + ' MB. Considere remover imagens base64 grandes.');
-    showSyncIndicator('error', '⚠️ Dados muito grandes para o Firebase (' + sizeMB + ' MB). Remova imagens base64 grandes.');
+  var body    = JSON.stringify(payload);
+  if (body.length > 9 * 1024 * 1024) {
+    showSyncIndicator('error', '⚠️ Dados muito grandes (' + (body.length/1024/1024).toFixed(1) + ' MB)');
     return;
   }
+  _enviarFirebase(body, 0);
+}
+
+function _enviarFirebase(body, tentativa) {
   fetch(FIREBASE_URL, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: payloadStr
+    body: body
   })
-  .then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
+  .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(function() {
-    var agora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    var kb = (payloadStr.length / 1024).toFixed(0);
-    showSyncIndicator('ok', '✅ Salvo na nuvem às ' + agora + ' (' + kb + ' KB)');
     _hasUnsyncedChanges = false;
+    var agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    showSyncIndicator('ok', '✅ Salvo às ' + agora);
     hideBanner();
   })
   .catch(function(err) {
-    if (tentativa < 2) {
-      // Retry com backoff
-      setTimeout(function() {
-        _tentarSalvarFirebase(payload, tentativa + 1);
-      }, (tentativa + 1) * 2000);
+    if (tentativa < 3) {
+      setTimeout(function() { _enviarFirebase(body, tentativa + 1); }, (tentativa + 1) * 2000);
     } else {
       showSyncIndicator('offline', '⚠️ Sem conexão — salvo localmente');
-      // Agenda nova tentativa em 30s
-      setTimeout(function() {
-        if (_hasUnsyncedChanges !== false) {
-          agendarSync();
-        }
-      }, 30000);
+      // Tenta de novo em 30s
+      setTimeout(function() { if (_hasUnsyncedChanges) agendarSync(); }, 30000);
     }
   });
 }
 
-// ── Carrega dados do Firebase ao abrir o site (background) ──
-// O site já abre com dados locais/ORIGINAL imediatamente.
-// Esta função busca o Firebase e atualiza se tiver dados mais recentes.
+// ── Carrega do Firebase ao abrir (Firebase é fonte da verdade) ──
 function carregarDaNuvem() {
   showSyncIndicator('syncing', '');
   fetch(FIREBASE_URL)
-  .then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
+  .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(function(dados) {
+    // Firebase vazio → sobe dados locais
     if (!dados || typeof dados !== 'object' || Object.keys(dados).length === 0) {
-      // Firebase vazio — sobe os dados locais para ele
-      showSyncIndicator('ok', '☁️ Subindo dados...');
-      agendarSync();
-      setTimeout(function() {
-        var el = document.getElementById('__syncindicator__');
-        if (el) el.style.opacity = '0';
-      }, 2000);
-      return;
-    }
-
-    // ── Verificação de versão antes de aplicar dados do Firebase ──
-    // Se o Firebase tem uma versão diferente do código atual, o mg_data dele está
-    // desatualizado (estrutura antiga, sem CID, duplicatas, etc).
-    // Nesse caso: ignora mg_data do Firebase, usa ORIGINAL do código, e sobe imediatamente.
-    var versaoFirebase = dados['mg_site_version'] || null;
-    var firebaseDesatualizado = versaoFirebase !== SITE_VERSION;
-    if (firebaseDesatualizado) {
-      console.log('[MedGuia] Firebase versão "' + versaoFirebase + '" ≠ código "' + SITE_VERSION + '" — ignorando mg_data do Firebase e subindo dados novos.');
-      // Aplica apenas chaves NÃO estruturais (preserva personalizações do usuário que não são receitas)
-      var chavesSegurasFirebase = ['mg_groups','mg_icons','mg_logos','mg_profiles',
-        'mg_medico','mg_crm','mg_calc_data','mg_caderno2',
-        'mg_dil_grades','mg_info_grades','mg_dil_grades_ver','mg_info_grades_ver',
-        'mg_calc_condutas_v2'];
-      chavesSegurasFirebase.forEach(function(chave) {
-        var valor = dados[chave];
-        if (valor && typeof valor === 'string' && valor.length > 10) {
-          try { localStorage.setItem(chave, valor); } catch(e) {}
-        }
-      });
-      // Força mg_data = ORIGINAL e marca versão nova
-      localStorage.setItem('mg_data', JSON.stringify(ORIGINAL));
-      localStorage.setItem('mg_site_version', SITE_VERSION);
-      D = JSON.parse(JSON.stringify(ORIGINAL));
-      renderAll();
-      // Sobe os dados corretos para o Firebase imediatamente
-      showSyncIndicator('syncing', '⏫ Atualizando Firebase...');
+      showSyncIndicator('ok', '☁️ Subindo dados iniciais...');
       agendarSync();
       return;
     }
 
-    // Firebase tem dados — SEMPRE aplica no localStorage (Firebase é fonte verdade)
-    // Isso garante que trocar o HTML no GitHub não perde os dados do Firebase
-    // NOTA: NÃO removemos mg_dil_grades nem mg_info_grades aqui — o Firebase vai sobrescrever
-    // se tiver versão válida. Isso evita zerar grades customizadas em race condition.
+    // Aplica TODOS os dados do Firebase no localStorage (Firebase é fonte da verdade)
     var chaves = window.ALL_DATA_KEYS || [
       'mg_data','mg_groups','mg_icons','mg_logos','mg_profiles',
       'mg_medico','mg_crm','mg_calc_data','mg_caderno2',
@@ -14023,84 +14203,31 @@ function carregarDaNuvem() {
     var aplicou = false;
     chaves.forEach(function(chave) {
       var valor = dados[chave];
-      if (valor && typeof valor === 'string' && valor.length > 10) {
+      if (valor && typeof valor === 'string' && valor.length > 2) {
         try { localStorage.setItem(chave, valor); aplicou = true; } catch(e) {}
       }
     });
 
     if (aplicou) {
-      // Recarrega a interface com os dados do Firebase
+      // Recarrega dados na memória sem tocar no ORIGINAL
       load();
-      // Forçar versão diferente para garantir merge via checkVersion
-      try { localStorage.setItem('mg_site_version', '__force_merge__'); } catch(e) {}
-      checkVersion();
-      // MERGE COMPLETO com ORIGINAL — garante que NUNCA perde itens novos do HTML
-      // Mesmo que Firebase tenha dados antigos, todos os itens do ORIGINAL são injetados
-      var needResave = false;
-      Object.keys(ORIGINAL).forEach(function(tabKey) {
-        if (!D[tabKey]) {
-          D[tabKey] = JSON.parse(JSON.stringify(ORIGINAL[tabKey]));
-          needResave = true;
-        } else if (ORIGINAL[tabKey] && ORIGINAL[tabKey].sections) {
-          var origSecs = ORIGINAL[tabKey].sections || [];
-          if (!D[tabKey].sections) { D[tabKey].sections = []; needResave = true; }
-          origSecs.forEach(function(os) {
-            // Busca por título exato
-            var ds = D[tabKey].sections.find(function(s){ return s.title === os.title; });
-            if (!ds) {
-              // Seção nova no ORIGINAL — adicionar inteira ao D
-              D[tabKey].sections.push(JSON.parse(JSON.stringify(os)));
-              needResave = true;
-            } else {
-              // Seção existe — verificar itens faltantes por ID
-              (os.items || []).forEach(function(oi) {
-                var exists = (ds.items||[]).find(function(di){ return di.id === oi.id; });
-                if (!exists) {
-                  if (!ds.items) ds.items = [];
-                  ds.items.push(JSON.parse(JSON.stringify(oi)));
-                  needResave = true;
-                }
-              });
-            }
-          });
-        }
-      });
-      if (needResave) {
-        try { localStorage.setItem('mg_data', JSON.stringify(D)); } catch(e){}
-        // Subir imediatamente ao Firebase com os dados mesclados
-        setTimeout(function() { if (typeof salvarNaNuvem === 'function') salvarNaNuvem(); }, 1000);
-      }
-      // Normaliza chaves com acento vindas do Firebase (ex: "obstetrícia" → "obstetricia")
-      var keyMap = {'obstetrícia':'obstetricia','obstétrica':'obstetricia','obstétrico':'obstetricia'};
-      var needReSave = false;
-      Object.keys(keyMap).forEach(function(old) {
-        if (D[old] && !D[keyMap[old]]) {
-          D[keyMap[old]] = D[old];
-          delete D[old];
-          needReSave = true;
-        }
-      });
-      if (needReSave) {
-        try { localStorage.setItem('mg_data', JSON.stringify(D)); } catch(e){}
-        agendarSync();
-      }
       buildNav();
-      // Navega para a aba correta
-      var hash = location.hash.replace('#','');
-      var firstTab = Object.keys(D).filter(function(k){ return k!=='calculos'&&k!=='config'&&k!=='caderno'; })[0];
+      var hash = location.hash.replace('#', '');
+      var firstTab = Object.keys(D).filter(function(k) {
+        return k !== 'calculos' && k !== 'config' && k !== 'caderno';
+      })[0];
       goTo(D[hash] ? hash : (firstTab || 'geral'));
     }
 
-    showSyncIndicator('ok', '✅ Dados carregados do Firebase');
+    showSyncIndicator('ok', '✅ Dados carregados');
     setTimeout(function() {
       var el = document.getElementById('__syncindicator__');
       if (el) el.style.opacity = '0';
     }, 2000);
   })
   .catch(function(err) {
-    // Erro de rede ou permissão — usa dados locais normalmente
-    console.warn('Firebase:', err.message);
-    showSyncIndicator('offline', '📶 Offline — dados locais');
+    console.warn('[MedGuia] Firebase offline:', err.message);
+    showSyncIndicator('offline', '📶 Offline — usando dados locais');
     setTimeout(function() {
       var el = document.getElementById('__syncindicator__');
       if (el) el.style.opacity = '0';
@@ -14108,14 +14235,61 @@ function carregarDaNuvem() {
   });
 }
 
-// ── Sobrescreve o bannerSync ──
+// ── Conecta o botão de banner ao save ──
 bannerSync = function() { salvarNaNuvem(); };
 
-// ── Carrega ao abrir o site ──
-window.addEventListener("load", function() {
+// ── Sync inteligente: aplica Firebase se mais recente que localStorage ──
+window.addEventListener('load', function() {
   if (location.hash === '#imp-review') return;
-  // Pequeno delay para o DOM estar pronto antes de sincronizar
-  setTimeout(carregarDaNuvem, 800);
+  var FIREBASE_URL_SYNC = "https://medguia-aa494-default-rtdb.firebaseio.com/medguia.json";
+  var ALL_KEYS_SYNC = [
+    'mg_data','mg_groups','mg_icons','mg_logos','mg_profiles',
+    'mg_medico','mg_crm','mg_calc_data','mg_caderno2',
+    'mg_dil_grades','mg_info_grades','mg_dil_grades_ver','mg_info_grades_ver',
+    'mg_calc_condutas_v2'
+  ];
+  var localTs = parseInt(localStorage.getItem('mg_saved_at') || '0');
+
+  fetch(FIREBASE_URL_SYNC)
+    .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(dados) {
+      if (!dados || typeof dados !== 'object' || Object.keys(dados).length === 0) {
+        // Firebase vazio → sobe dados locais
+        if (typeof agendarSync === 'function') agendarSync();
+        return;
+      }
+      var fbTs = parseInt(dados['mg_saved_at'] || '0');
+
+      // Firebase mais recente → aplicar e re-renderizar
+      if (fbTs > localTs) {
+        var aplicou = false;
+        ALL_KEYS_SYNC.forEach(function(k) {
+          var v = dados[k];
+          if (v && typeof v === 'string' && v.length > 2) {
+            try { localStorage.setItem(k, v); aplicou = true; } catch(e) {}
+          }
+        });
+        localStorage.setItem('mg_saved_at', fbTs.toString());
+        if (aplicou) {
+          // Re-renderiza com dados atualizados do Firebase
+          load();
+          buildNav();
+          var hash = location.hash.replace('#','');
+          var firstTab = Object.keys(D).filter(function(k){ return k!=='calculos'&&k!=='config'&&k!=='caderno'; })[0];
+          goTo(D[hash] ? hash : (firstTab || 'geral'));
+          showSyncIndicator('ok', '☁️ Dados atualizados');
+          setTimeout(function(){ var el=document.getElementById('__syncindicator__'); if(el) el.style.opacity='0'; }, 3000);
+        }
+      } else if (localTs > fbTs && localTs > 0) {
+        // Local mais recente → sobe para Firebase
+        if (typeof agendarSync === 'function') agendarSync();
+      }
+    })
+    .catch(function(err) {
+      console.warn('[MedGuia] Firebase sync falhou:', err.message);
+      showSyncIndicator('offline', '📶 Offline — usando dados locais');
+      setTimeout(function(){ var el=document.getElementById('__syncindicator__'); if(el) el.style.opacity='0.4'; }, 5000);
+    });
 });
 
 </script>
