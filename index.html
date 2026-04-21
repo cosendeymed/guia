@@ -100,6 +100,8 @@ html, body { height: 100%; font-family: var(--sans); font-size: 14px; color: var
 .si:hover { background: var(--sb-hover); color: rgba(255,255,255,.82); }
 .si.on { background: var(--sb-on); color: #93c5fd; border-color: var(--sb-on-bd); }
 .si-ico { font-size: 15px; flex-shrink: 0; width: 20px; text-align: center; }
+.si-ico[data-k] { cursor: pointer; border-radius: 4px; transition: background .15s; padding: 1px 2px; }
+.si-ico[data-k]:hover { background: rgba(255,255,255,.15); }
 .sl { flex: 1; }
 
 .sb-foot {
@@ -13268,13 +13270,35 @@ window.buildPedCalculator  = buildPedCalculator;
 
 
 const EMOJI_CATS = {
+  // ── ÓRGÃOS E SISTEMAS DO CORPO ──────────────────────────────────
+  '🫀 Coração':   ['🫀','❤️','💓','💔','💗','💘','💙','💚','💛','🧡','🩷','🩶','🩸','📈','📉','⚡','🔋','⏱️','🌡️','🩺','🩻','💊','💉'],
+  '🫁 Pulmão':    ['🫁','💨','🌬️','🫧','💧','🌊','☁️','🌫️','💦','😮‍💨','😤','😷','🤧','🤒','🌡️','🩺','🩻','💊','💉','🩸','⚕️'],
+  '🧠 Cérebro':   ['🧠','💭','🤔','😵','😵‍💫','🥴','💤','😴','👁️','👀','⚡','🌀','🔮','💡','📡','🎯','🧩','🌟','✨','💫','🔦'],
+  '🦷 Dentes':    ['🦷','👄','😁','😬','🪥','🧴','🌡️','💊','🩺'],
+  '👁️ Olhos':     ['👁️','👀','🫣','🔭','🌈','💎','💠','🔷','🔹','🟦','🟣','🔮','🌡️','💊','🩺','🩻'],
+  '👂 Ouvido':    ['👂','🦻','🔊','🔉','🔈','🔇','🔕','🎵','🎶','🎧','🩺','💊','🌡️'],
+  '👃 Nariz':     ['👃','🤧','🌸','💨','🌬️','😤','😷','🩺','💊','🌡️','🧴'],
+  '🦴 Esqueleto': ['🦴','🦷','💪','🦾','🦿','🖐️','✋','🤚','🦶','🦵','⚙️','🔩','🪛','🔧','📏','📐'],
+  '🍾 Estômago':  ['🫃','🤢','🤮','🤧','🍽️','🥗','🧃','🫙','💩','🔴','🟡','🟢','🩺','💊','💉','🩸','🧫'],
+  '🫘 Rins':      ['🫘','💧','💦','🚿','🪣','🧴','⚗️','🧪','🔬','🩺','🩻','🟡','🟠','💊','💉','🩸','⚖️','📊'],
+  '🟤 Fígado':    ['🟤','🟡','💛','🧡','🩸','⚗️','🧪','🔬','🧫','🦠','🩺','🩻','💊','💉','📊','📈'],
+  '🫄 Pâncreas':  ['🫄','🩸','💉','🧪','⚗️','🔬','💊','🟡','🟠','📊','📈','🩺','🩻','⚖️'],
+  '💚 Baço':      ['💚','🩸','🧫','🦠','🔬','🧪','💊','💉','🩺','🟢','🟡'],
+  '🦠 Intestino': ['🦠','🧫','🔬','🧪','💩','🤢','🤮','💊','💉','🩸','🩺','🟤','🟡','🟢'],
+  '🩸 Sangue':    ['🩸','💉','🩹','🧪','🔬','🧫','🧬','⚗️','💊','🩺','🩻','⚖️','📊','📈','📉'],
+  '🌡️ Pele':      ['🌡️','🧴','🩹','💊','🦠','🧫','🔬','🌸','🌺','🌿','🧪','⚗️','☀️','🌊','💧','🩺'],
+  // ── CLÍNICA ─────────────────────────────────────────────────────
   '🏥 Médico':    ['💊','💉','🩺','🩹','🏥','🚑','🩻','🧬','🔬','🩸','🫀','🫁','🧠','🦷','🦴','👁️','👂','🤧','🤒','🤕','🤢','😷','🧪','⚕️','🏨','💆','🧘','🚿'],
-  '🚨 Urgência':  ['🚨','⚠️','❗','🔴','🟠','🟡','💥','⚡','❤️','💔','🫶','🩺','🚑','🆘','🆕','‼️','🔥','☢️','☣️','🛑'],
-  '💊 Medicação': ['💊','💉','🩹','🧴','🧪','🫙','⚗️','🔭','🔬','📋','📝','🗒️','✅','❌','⭕','🔵','🟢','🔴'],
-  '👶 Pediátrico':['👶','🍼','🧒','👦','👧','🤱','🫂','🧸','🎀','🏠','🌡️','🩺','💊','🧃','🫧'],
-  '🤰 Obstetrícia':['🤰','👶','🫄','🌸','💗','🩷','🩺','💊','🏥','👩‍⚕️','💉','🩸','🔬'],
+  '🚨 Urgência':  ['🚨','⚠️','❗','🔴','🟠','🟡','💥','⚡','❤️','💔','🫶','🩺','🚑','🆘','🆕','‼️','🔥','☢️','☣️','🛑','💊','💉','🩸','🩹'],
+  '💊 Medicação': ['💊','💉','🩹','🧴','🧪','🫙','⚗️','🔭','🔬','📋','📝','🗒️','✅','❌','⭕','🔵','🟢','🔴','🟡','🟠','🟣'],
+  '👶 Pediátrico':['👶','🍼','🧒','👦','👧','🤱','🫂','🧸','🎀','🏠','🌡️','🩺','💊','🧃','🫧','🌈','⭐','☀️','🌸','🍎','🍊'],
+  '🤰 Obstetrícia':['🤰','👶','🫄','🌸','💗','🩷','🩺','💊','🏥','💉','🩸','🔬','🫀','👼','🌙','⭐','❤️'],
+  '🧬 Infectologia':['🦠','🧬','🔬','🧪','⚗️','🫧','💉','🩸','🩹','🌡️','🦟','🦗','🕷️','🐛','😷','💊','🏥','🩺','🔴','🟠'],
+  '🧘 Saúde Mental':['🧠','💭','🤔','😔','😢','😰','😊','😌','🥰','🌈','☀️','🌱','🌿','🫂','🤝','🫶','💗','❤️','🕊️','🌟','✨'],
+  // ── INTERFACE ───────────────────────────────────────────────────
   '📋 Documentos':['📋','📄','📝','🗒️','📑','🗂️','📁','📂','🗃️','✍️','🖊️','✒️','📌','📍','📎','🔖','🏷️','🖨️','🖥️'],
   '🧮 Calc/Info': ['🧮','📊','📈','📉','🔢','💯','🔵','🟢','🔴','🟡','⭐','✅','❌','🔍','🔎','💡','📡','🌡️','⚖️','🗓️'],
+  '🚦 Status':    ['🔴','🟠','🟡','🟢','🔵','🟣','🟤','⚫','⚪','✅','❌','⚠️','🚨','❗','🛑','🔔','📢','🆘','💥','🔥'],
   '🌿 Outros':    ['🌿','🌱','🍃','🍀','🌾','💐','🌺','🌻','🌙','⭐','🌟','✨','🎯','🏆','🎖️','🔑','🗝️','🔒','🛡️','⚙️','🔧','🔨','🪛','🌈','☀️','🌊'],
 };
 
@@ -13288,7 +13312,8 @@ function openEmojiPicker(k, si, ii, anchorEl) {
   const rect = anchorEl.getBoundingClientRect();
   picker.style.display = 'block';
   bd.style.display     = 'block';
-  // Position below/right of icon
+  picker.dataset.mode = 'card';
+  delete picker.dataset.tabKey;
   let top  = rect.bottom + 6;
   let left = rect.left;
   if (left + 300 > window.innerWidth) left = window.innerWidth - 310;
@@ -13343,8 +13368,9 @@ function filterEmojis(q) {
     // Since we don't have names, show all from all cats for search
     pool = [...new Set(Object.values(EMOJI_CATS).flat())];
   }
+  const isTabMode = document.getElementById('emojiPicker').dataset.mode === 'tab';
   grid.innerHTML = pool.map(e =>
-    `<button class="emoji-btn" onclick="pickEmoji('${e}')" title="${e}">${e}</button>`
+    `<button class="emoji-btn" onclick="${isTabMode ? 'pickEmojiForTab' : 'pickEmoji'}('${e}')" title="${e}">${e}</button>`
   ).join('');
 }
 window.filterEmojis = filterEmojis;
@@ -13363,6 +13389,45 @@ function pickEmoji(emoji) {
   toast('✅ Ícone atualizado!');
 }
 window.pickEmoji = pickEmoji;
+
+// ── PICKER DE EMOJI PARA ABAS DO SIDEBAR ──────────────────────────
+let _tabEmojiTarget = null;
+
+function openTabEmojiPicker(k, anchorEl) {
+  // Prevent drag from triggering
+  _tabEmojiTarget = k;
+  const picker = document.getElementById('emojiPicker');
+  const bd     = document.getElementById('emojiBackdrop');
+  const rect = anchorEl.getBoundingClientRect();
+  picker.style.display = 'block';
+  bd.style.display     = 'block';
+  let top  = rect.bottom + 6;
+  let left = rect.left;
+  if (left + 300 > window.innerWidth) left = window.innerWidth - 310;
+  if (top + 320  > window.innerHeight) top = rect.top - 326;
+  picker.style.top  = top  + 'px';
+  picker.style.left = left + 'px';
+  // Switch to tab mode
+  picker.dataset.mode = 'tab';
+  picker.dataset.tabKey = k;
+  buildEmojiCats();
+  filterEmojis('');
+  document.getElementById('emojiSearch').value = '';
+  setTimeout(() => document.getElementById('emojiSearch').focus(), 50);
+}
+window.openTabEmojiPicker = openTabEmojiPicker;
+
+function pickEmojiForTab(emoji) {
+  const k = document.getElementById('emojiPicker').dataset.tabKey;
+  if (!k) return;
+  IC[k] = emoji;
+  save();
+  // Update all si-ico elements for this tab
+  document.querySelectorAll(`.si-ico[data-k="${k}"]`).forEach(el => el.textContent = emoji);
+  closeEmojiPicker();
+  toast('✅ Ícone da aba atualizado!');
+}
+window.pickEmojiForTab = pickEmojiForTab;
 
 // ══════════════════════════════════════════════════
 // MOVER / COPIAR ITEM
@@ -15637,6 +15702,43 @@ window.iaShowBtnSalvar = iaShowBtnSalvar;
     // Scroll iOS momentum
     var c=document.getElementById('content');
     if(c) c.style.webkitOverflowScrolling='touch';
+    // ── EMOJI PICKER DAS ABAS (duplo clique ou clique longo no ícone) ──
+    // Adiciona title tooltip nos ícones de aba
+    document.querySelectorAll('.si-ico[data-k]').forEach(function(el) {
+      var k = el.dataset.k;
+      if (k !== 'config') el.title = '2× clique para trocar emoji';
+    });
+    var nav2 = document.getElementById('sidebarNav');
+    if (nav2) {
+      var lpTimer = null;
+      function startLP(e, ico) {
+        if (!ico || !ico.dataset.k) return;
+        var k = ico.dataset.k;
+        if (k === 'config') return;
+        lpTimer = setTimeout(function() {
+          openTabEmojiPicker(k, ico);
+        }, 500);
+      }
+      // Duplo clique no ícone abre o picker (desktop)
+      nav2.addEventListener('dblclick', function(e) {
+        var ico = e.target.closest('.si-ico[data-k]');
+        if (!ico || !ico.dataset.k) return;
+        var k = ico.dataset.k;
+        if (k === 'config') return;
+        e.stopPropagation();
+        openTabEmojiPicker(k, ico);
+      });
+      nav2.addEventListener('mousedown', function(e) {
+        startLP(e, e.target.closest('.si-ico[data-k]'));
+      });
+      nav2.addEventListener('mouseup', function() { clearTimeout(lpTimer); });
+      nav2.addEventListener('mouseleave', function() { clearTimeout(lpTimer); });
+      nav2.addEventListener('touchstart', function(e) {
+        startLP(e, e.target.closest('.si-ico[data-k]'));
+      }, {passive:true});
+      nav2.addEventListener('touchend', function() { clearTimeout(lpTimer); });
+      nav2.addEventListener('touchmove', function() { clearTimeout(lpTimer); });
+    }
   });
   // Swipe para abrir/fechar sidebar
   var sx=0, sy=0;
