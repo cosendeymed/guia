@@ -6198,10 +6198,11 @@ function igSaveCard(gid, editIdx) {
   toast('✅ Card salvo!');
 }
 function igDelCard(gid,ci){
-  if(!confirm('Remover este card?')) return;
+  if(!confirm('Excluir este card permanentemente?\n\nEsta ação não pode ser desfeita.')) return;
   var grades=infoGradesLoad(); var grade=grades.find(function(g){return g.id===gid;});
   if(!grade) return; grade.cards.splice(parseInt(ci),1);
-  infoGradesSave(grades); document.getElementById('modalIgCard').remove();
+  infoGradesSave(grades);
+  var modal=document.getElementById('modalIgCard'); if(modal) modal.remove();
   renderInfo(document.getElementById('content')); toast('🗑 Card removido');
 }
 window.igOpenCardModal=igOpenCardModal; window.igSyncLabel=igSyncLabel; window.igPrev=igPrev;
