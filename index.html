@@ -6748,6 +6748,7 @@ function renderInfo(container) {
             // apenas botão de emoji no hover (editar/excluir ficam dentro do painel)
             + '<div class="ig-acts">'
             + '<span class="ig-act" onclick="event.stopPropagation();igChangeEmoji(\''+grade.id+'\','+ci+',this)" title="Trocar emoji">😊</span>'
+            + '<span class="ig-act del" onclick="event.stopPropagation();igDelCard(\''+grade.id+'\','+ci+')" title="Excluir card">✕</span>'
             + '</div>'
             + '<div class="ig-card" onclick="igOpenPanel(\''+grade.id+'\','+ci+')" title="'+esc(item.title)+'">'
             + '<span class="ig-card-e">'+card.emoji+'</span>'
